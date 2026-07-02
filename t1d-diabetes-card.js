@@ -1,6 +1,6 @@
 /**
- * T1D Diabetes Tracker Card - V1.4.3
- * Full length implementation
+ * T1D Diabetes Tracker Card - V1.4.4
+ * Optimized for Dwain Dashboard Integration
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -40,7 +40,6 @@ class T1DDiabetesCard extends HTMLElement {
     const glucoseVal = parseFloat(getState(this._config.entity));
     const unit = this._config.unit_type || "mmol/L";
     
-    // A1c Logic - Precise conversion based on user-selected unit
     let a1cEstimate = "N/A";
     if (!isNaN(glucoseVal)) {
         if (unit === "mmol/L") {
@@ -53,25 +52,25 @@ class T1DDiabetesCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { 
-          background: rgba(0, 187, 0, 0.06) !important; 
-          border: 1.5px solid rgba(0, 187, 0, 0.3) !important; 
+          background: transparent !important; 
+          border: 1px solid rgba(255, 255, 255, 0.1) !important; 
           border-radius: 12px !important; 
-          padding: 16px; 
+          padding: 12px !important; 
           color: white; 
         }
-        .title { font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; }
-        .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .glucose-box { border: 1.5px solid #3498db; border-radius: 25px; padding: 12px 20px; display: inline-block; }
-        .glucose-val { font-size: 2.5rem; font-weight: bold; color: #3498db; }
-        .status-area { font-size: 1.2rem; text-align: right; }
-        .arrow { font-size: 2.5rem; display: block; line-height: 1; }
-        .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
-        .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-        .box { border: 1px solid #66ff66; padding: 12px; border-radius: 8px; text-align: center; position: relative; }
-        .tab-iob { border-top: 5px solid #3498db; }
-        .tab-cob { border-top: 5px solid #2ecc71; }
-        .tab-req { border-top: 5px solid #e67e22; }
-        .btn { border: 1.5px solid #66ff66; padding: 10px; border-radius: 8px; text-align: center; color: #66ff66; font-weight: bold; cursor: pointer; }
+        .title { font-size: 1rem; font-weight: 500; margin-bottom: 10px; opacity: 0.8; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .glucose-box { border: 1.5px solid #3498db; border-radius: 12px; padding: 6px 14px; display: inline-block; }
+        .glucose-val { font-size: 1.8rem; font-weight: bold; color: #3498db; }
+        .status-area { font-size: 0.9rem; text-align: right; line-height: 1.2; }
+        .arrow { font-size: 1.6rem; display: block; }
+        .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
+        .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+        .box { border: 1px solid rgba(0, 187, 0, 0.1); padding: 6px; border-radius: 6px; text-align: center; position: relative; font-size: 0.85rem; }
+        .tab-iob { border-top: 3px solid #3498db; }
+        .tab-cob { border-top: 3px solid #2ecc71; }
+        .tab-req { border-top: 3px solid #e67e22; }
+        .btn { border: 1px solid rgba(0, 187, 0, 0.15); padding: 6px; border-radius: 6px; text-align: center; color: #66ff66; font-weight: 500; cursor: pointer; font-size: 0.85rem; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
@@ -85,7 +84,7 @@ class T1DDiabetesCard extends HTMLElement {
            <div class="box tab-req">REQ<br><b>${getState(this._config.req_entity)}</b></div>
         </div>
         <div class="grid-double">
-           <div class="box">EST. A1C<br><b style="font-size:1.5rem">${a1cEstimate}%</b></div>
+           <div class="box">EST. A1C<br><b style="font-size:1.1rem">${a1cEstimate}%</b></div>
            <div class="box">SENSOR DAYS<br><b>${getState(this._config.days_entity)}</b></div>
         </div>
         <div class="grid-double">
@@ -100,22 +99,12 @@ class T1DDiabetesCard extends HTMLElement {
   }
 }
 
-// ── Configuration Editor Class Definition ──────────────────────────────────
 class T1DDiabetesCardEditor extends HTMLElement {
-  constructor() { 
-    super(); 
-    this.attachShadow({ mode: 'open' }); 
-  }
-  setConfig(config) { 
-    this._config = config; 
-  }
-  set hass(hass) { 
-    this._hass = hass; 
-    this._render(); 
-  }
+  constructor() { super(); this.attachShadow({ mode: 'open' }); }
+  setConfig(config) { this._config = config; }
+  set hass(hass) { this._hass = hass; this._render(); }
   _render() {
     if (!this._hass || !this._config || this.shadowRoot.querySelector('ha-form')) return;
-    
     const schema = [
       { name: "title", label: "Card Title", selector: { text: {} } },
       { name: "unit_type", label: "Units", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
@@ -129,33 +118,18 @@ class T1DDiabetesCardEditor extends HTMLElement {
       { name: "alexa_name_2", label: "Name for Alexa Button 2", selector: { text: {} } },
       { name: "alexa_2", label: "Alexa Script 2", selector: { entity: { domain: "script" } } }
     ];
-    
     const form = document.createElement("ha-form");
-    form.hass = this._hass; 
-    form.schema = schema; 
-    form.data = this._config; 
-    form.computeLabel = (s) => s.label;
-    
+    form.hass = this._hass; form.schema = schema; form.data = this._config; form.computeLabel = (s) => s.label;
     form.addEventListener("value-changed", (ev) => {
       this._config = ev.detail.value;
-      this.dispatchEvent(new CustomEvent("config-changed", { 
-        detail: { config: this._config }, 
-        bubbles: true, 
-        composed: true 
-      }));
+      this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
     });
     this.shadowRoot.appendChild(form);
   }
 }
 
-// ── Registration ──────────────────────────────────
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ 
-  type: 't1d-diabetes-card', 
-  name: 'T1DDiabetesCard v1.4.2', 
-  preview: true, 
-  description: 'Full T1D management card V1.4.2' 
-});
+window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.4', preview: true, description: 'Full T1D management card V1.4.4' });
