@@ -1,6 +1,5 @@
 /**
  * T1D Diabetes Tracker Card
- * Corrected version with persistent configuration editor
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -11,20 +10,6 @@ class T1DDiabetesCard extends HTMLElement {
 
   static getConfigElement() {
     return document.createElement("t1d-diabetes-card-editor");
-  }
-
-  static getStubConfig() {
-    return {
-      title: "Dexcom G6",
-      entity: "",
-      days_left_entity: "",
-      iob_entity: "",
-      cob_entity: "",
-      req_entity: "",
-      a1c_entity: "",
-      alexa_entity: "",
-      show_title: true,
-    };
   }
 
   setConfig(config) {
@@ -38,22 +23,43 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   _render() {
-    // Basic rendering logic for the main card
-    this.shadowRoot.innerHTML = `<div>T1D Tracker Card Loaded. Configure entities in the editor.</div>`;
-    // Add your existing display logic here...
+    if (!this._config || !this._hass) return;
+
+    const getState = (entity) => {
+      const stateObj = entity ? this._hass.states[entity] : null;
+      return stateObj ? stateObj.state : "N/A";
+    };
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        ha-card { padding: 16px; border-radius: 12px; }
+        .title { font-size: 1.2rem; margin-bottom: 12px; font-weight: 500; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
+        .label { opacity: 0.7; }
+        .value { font-weight: bold; }
+      </style>
+      <ha-card>
+        <div class="title">${this._config.title || "T1D Tracker"}</div>
+        <div class="row"><span class="label">Glucose:</span><span class="value">${getState(this._config.entity)}</span></div>
+        <div class="row"><span class="label">IOB:</span><span class="value">${getState(this._config.iob_entity)}</span></div>
+        <div class="row"><span class="label">COB:</span><span class="value">${getState(this._config.cob_entity)}</span></div>
+        <div class="row"><span class="label">REQ:</span><span class="value">${getState(this._config.req_entity)}</span></div>
+        <div class="row"><span class="label">A1c:</span><span class="value">${getState(this._config.a1c_entity)}</span></div>
+        <div class="row"><span class="label">Sensor Days:</span><span class="value">${getState(this._config.days_entity)}</span></div>
+        <div class="row"><span class="label">Units:</span><span class="value">${this._config.unit_type || "mg/dL"}</span></div>
+      </ha-card>
+    `;
   }
 }
 
-// ── Configuration Editor Class ──────────────────────────────────
+// ── Editor ──────────────────────────────────
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
   }
 
-  setConfig(config) {
-    this._config = config;
-  }
+  setConfig(config) { this._config = config; }
 
   set hass(hass) {
     this._hass = hass;
@@ -65,48 +71,37 @@ class T1DDiabetesCardEditor extends HTMLElement {
 
     const schema = [
       { name: "title", label: "Card Title", selector: { text: {} } },
+      { name: "unit_type", label: "Units (e.g., mg/dL or mmol/L)", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
       { name: "entity", label: "Blood Glucose Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "days_left_entity", label: "Sensor Expiry/Countdown Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "iob_entity", label: "Insulin On Board (IOB) Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "cob_entity", label: "Carbs On Board (COB) Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "req_entity", label: "Carbs Required (REQ) Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "a1c_entity", label: "Estimated A1c Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "alexa_entity", label: "Alexa Target", selector: { entity: { domain: "media_player" } } },
+      { name: "iob_entity", label: "IOB Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "cob_entity", label: "COB Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "req_entity", label: "REQ Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "a1c_entity", label: "A1c Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "days_entity", label: "Sensor Days Remaining", selector: { entity: { domain: "sensor" } } }
     ];
 
     const form = document.createElement("ha-form");
     form.hass = this._hass;
     form.schema = schema;
     form.data = this._config;
-    form.computeLabel = (schema) => schema.label;
+    form.computeLabel = (s) => s.label;
     
     form.addEventListener("value-changed", (ev) => {
       this._config = ev.detail.value;
-      this.dispatchEvent(new CustomEvent("config-changed", {
-        detail: { config: this._config },
-        bubbles: true,
-        composed: true,
-      }));
+      this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
     });
-
     this.shadowRoot.appendChild(form);
   }
 }
 
-// ── Registration ──────────────────────────────────────────────────
-if (!customElements.get('t1d-diabetes-card')) {
-  customElements.define('t1d-diabetes-card', T1DDiabetesCard);
-}
-if (!customElements.get('t1d-diabetes-card-editor')) {
-  customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
-}
+// ── Registration ──────────────────────────────────
+customElements.define('t1d-diabetes-card', T1DDiabetesCard);
+customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-if (!window.customCards.some(c => c.type === 't1d-diabetes-card')) {
-  window.customCards.push({
-    type: 't1d-diabetes-card',
-    name: 'T1D Diabetes Tracker Card',
-    preview: true,
-    description: 'Advanced dashboard with persistent editor.'
-  });
-}
+window.customCards.push({
+  type: 't1d-diabetes-card',
+  name: 'T1D Diabetes Tracker Card',
+  preview: true,
+  description: 'Full T1D management card.'
+});
