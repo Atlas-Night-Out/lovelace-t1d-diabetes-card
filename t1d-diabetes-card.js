@@ -1,5 +1,5 @@
 /**
- * T1D Diabetes Tracker Card - V1.3.8
+ * T1D Diabetes Tracker Card - V1.3.9
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -40,40 +40,36 @@ class T1DDiabetesCard extends HTMLElement {
     const a1cEstimate = !isNaN(glucoseVal) ? ((glucoseVal + 46.7) / 28.7).toFixed(1) : "N/A";
     const unit = this._config.unit_type || "mmol/L";
 
-    // Style for the color-coded status boxes
-    const boxStyle = "background: #1a1c1a; padding: 14px; border-radius: 12px; text-align: center; border: 3px solid #2ecc71;";
-
     this.shadowRoot.innerHTML = `
       <style>
-        ha-card { padding: 16px; border-radius: 16px; background: #0d120f; color: white; border: 3px solid #66ff66; }
-        .title { font-size: 1.4rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
+        ha-card { padding: 16px; border-radius: 12px; background: #0d120f; color: white; border: 2px solid #66ff66; }
+        .title { font-size: 1.3rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
         .main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .glucose-circle { border: 3px solid #3498db; border-radius: 30px; padding: 15px; display: flex; align-items: center; gap: 8px; }
-        .glucose-val { font-size: 2.8rem; font-weight: bold; color: #3498db; }
-        .status-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .status-circle { width: 16px; height: 16px; background: #66ff66; border-radius: 50%; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-        .box { background: #0e1410; padding: 14px; border-radius: 12px; text-align: center; border: 3px solid #2d4536; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-        .box-label { font-size: 0.8rem; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; }
-        .box-val { font-size: 1.3rem; font-weight: bold; }
-        .alexa-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { background: #1a1c1a; padding: 12px; border-radius: 10px; text-align: center; font-size: 0.9rem; cursor: pointer; border: 3px solid #66ff66; color: #66ff66; font-weight: bold; }
+        .glucose-container { border: 2px solid #3498db; border-radius: 50px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; }
+        .glucose-val { font-size: 2.5rem; font-weight: bold; color: #3498db; }
+        .status-circle { width: 14px; height: 14px; background: #66ff66; border-radius: 50%; border: 2px solid #fff; display: inline-block; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+        .box { background: #0e1410; padding: 12px; border-radius: 8px; text-align: center; border: 2px solid #2d4536; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .box-label { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .box-val { font-size: 1.1rem; font-weight: bold; }
+        .alexa-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn { background: #0d120f; padding: 10px; border-radius: 6px; text-align: center; font-size: 0.9rem; cursor: pointer; border: 2px solid #66ff66; color: #66ff66; font-weight: bold; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "T1D Tracker"}</div>
         <div class="main-row">
-          <div class="glucose-circle"><span class="glucose-val">${getState(this._config.entity)}</span> <span style="font-size: 1rem;">${unit}</span></div>
-          <div class="status-area"><span class="status-circle"></span><span style="font-size: 1.1rem;">→ Steady</span></div>
+          <div class="glucose-container"><span class="glucose-val">${getState(this._config.entity)}</span> <span style="font-size: 1rem;">${unit}</span></div>
+          <div style="display: flex; align-items: center; gap: 6px;"><span class="status-circle"></span><span style="font-size: 1.1rem;">Steady →</span></div>
         </div>
         <div class="grid">
-          <div class="box" style="border-top: 6px solid #3498db;"><div class="box-label" style="color:#3498db">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
-          <div class="box" style="border-top: 6px solid #2ecc71;"><div class="box-label" style="color:#2ecc71">COB</div><div class="box-val">${getState(this._config.cob_entity)} g</div></div>
-          <div class="box" style="border-top: 6px solid #e67e22;"><div class="box-label" style="color:#e67e22">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
+          <div class="box"><div class="box-label" style="color:#3498db">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
+          <div class="box"><div class="box-label" style="color:#2ecc71">COB</div><div class="box-val">${getState(this._config.cob_entity)} g</div></div>
+          <div class="box"><div class="box-label" style="color:#e67e22">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
         </div>
         <div class="info-grid">
-          <div style="${boxStyle}"><div class="box-label">EST. A1C</div><div class="box-val">${a1cEstimate}%</div></div>
-          <div style="${boxStyle}"><div class="box-label">SENSOR DAYS</div><div class="box-val" style="font-size: 1.1rem;">${getState(this._config.days_entity)}</div></div>
+          <div class="box"><div class="box-label">A1c</div><div class="box-val">${a1cEstimate}%</div></div>
+          <div class="box"><div class="box-label">SENSOR DAYS</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
         </div>
         <div class="alexa-row">
           <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
@@ -121,4 +117,4 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.3.8', preview: true, description: 'Full T1D management card V1.3.8' });
+window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.3.9', preview: true, description: 'Full T1D management card V1.3.9' });
