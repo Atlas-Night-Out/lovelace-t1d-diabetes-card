@@ -31,9 +31,8 @@ class T1DDiabetesCard extends HTMLElement {
     };
 
     const glucoseVal = parseFloat(getState(this._config.entity));
-    // A1c calculation based on current glucose sensor input
+    // A1c calculation
     const a1cEstimate = !isNaN(glucoseVal) ? ((glucoseVal + 46.7) / 28.7).toFixed(1) : "N/A";
-    
     const unit = this._config.unit_type || "mmol/L";
 
     this.shadowRoot.innerHTML = `
@@ -104,4 +103,9 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1D Diabetes Tracker Card', preview: true, description: 'Sleek T1D tracking.' });
+window.customCards.push({ 
+  type: 't1d-diabetes-card', 
+  name: 'T1D Diabetes Tracker Card', 
+  preview: true, 
+  description: 'Sleek T1D tracking.' 
+});
