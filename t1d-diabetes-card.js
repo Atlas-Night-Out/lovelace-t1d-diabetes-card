@@ -26,6 +26,7 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   setConfig(config) {
+    if (!config.entity) throw new Error("Please define a blood glucose entity");
     this._config = config;
   }
 
@@ -34,13 +35,12 @@ class T1DDiabetesCard extends HTMLElement {
     if (!this._config) return;
 
     const bgEntity = this._config.entity ? hass.states[this._config.entity] : null;
-    
-    // Safety Net: Render a helpful layout if the main entity isn't fully set up yet
+
     if (!bgEntity) {
       this.shadowRoot.innerHTML = `
         <div style="padding: 16px; background: #1c1c1e; color: #ff3b30; border-radius: 12px; border: 1px solid #ff3b30; font-family: sans-serif;">
           <strong style="color: #ff453a;">T1D Diabetes Tracker Card</strong><br>
-          <span style="font-size: 0.85rem; color: #e0e0e0;">Please select a valid Blood Glucose Sensor in the card configuration. Current: "${this._config.entity || 'None Selected'}"</span>
+          <span style="font-size: 0.85rem; color: #e0e0e0;">Please select a valid Blood Glucose Sensor.</span>
         </div>
       `;
       return;
@@ -52,7 +52,7 @@ class T1DDiabetesCard extends HTMLElement {
     const reqEntity = this._config.req_entity ? hass.states[this._config.req_entity] : null;
     const a1cEntity = this._config.a1c_entity ? hass.states[this._config.a1c_entity] : null;
 
-    // Fallback Parsing for Trend Arrows
+    // Trend Arrow Logic
     const direction = (bgEntity.attributes.direction || bgEntity.attributes.trend || bgEntity.attributes.trend_arrow || '').toLowerCase();
     let trendArrow = '→';
     if (direction.includes('up')) {
@@ -184,7 +184,9 @@ class T1DDiabetesCard extends HTMLElement {
           align-items: center;
           justify-content: center;
           gap: 8px;
+          transition: background 0.2s;
         }
+        .alexa-btn:hover { background: #0082b3; }
       </style>
 
       <div class="card">
@@ -252,7 +254,7 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 
 
 // ==========================================
-// PART 2: THE NATIVE UI CONFIGURATION EDITOR
+// PART 2: THE CONFIGURATION EDITOR (Standard Selects)
 // ==========================================
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
@@ -262,7 +264,6 @@ class T1DDiabetesCardEditor extends HTMLElement {
 
   setConfig(config) {
     this._config = config;
-    this._render();
   }
 
   set hass(hass) {
@@ -273,6 +274,20 @@ class T1DDiabetesCardEditor extends HTMLElement {
   _render() {
     if (!this._hass || !this._config) return;
 
+    // Build entity lists
+    const allEntities = Object.keys(this._hass.states).sort();
+    const sensors = allEntities.filter(e => e.startsWith('sensor.'));
+    const listenables = allEntities.filter(e => e.startsWith('media_player.') || e.startsWith('script.'));
+
+    // Helper function to build options
+    const buildOptions = (list, selectedValue) => {
+      let html = `<option value="">None</option>`;
+      list.forEach(e => {
+        html += `<option value="${e}" ${selectedValue === e ? 'selected' : ''}>${e}</option>`;
+      });
+      return html;
+    };
+
     this.shadowRoot.innerHTML = `
       <style>
         .form {
@@ -280,102 +295,105 @@ class T1DDiabetesCardEditor extends HTMLElement {
           flex-direction: column;
           gap: 16px;
           padding: 10px 0;
+          font-family: sans-serif;
         }
-        ha-entity-picker, ha-textfield {
-          display: block;
+        .form-row {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        label {
+          font-weight: bold;
+          font-size: 0.85rem;
+          color: var(--secondary-text-color, #e0e0e0);
+        }
+        input, select {
+          padding: 8px;
+          border-radius: 4px;
+          border: 1px solid var(--divider-color, #ccc);
+          background: var(--card-background-color, #fff);
+          color: var(--primary-text-color, #000);
+          font-size: 0.9rem;
           width: 100%;
+          box-sizing: border-box;
         }
       </style>
 
       <div class="form">
-        <ha-textfield 
-          id="title" 
-          label="Card Title" 
-          .value="${this._config.title || ''}">
-        </ha-textfield>
+        <div class="form-row">
+          <label>Card Title</label>
+          <input type="text" id="title" value="${this._config.title || ''}">
+        </div>
 
-        <ha-entity-picker 
-          id="entity" 
-          label="Blood Glucose Sensor (Required)" 
-          .hass=${this._hass} 
-          .value=${this._config.entity || ''} 
-          include-domains='["sensor"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Blood Glucose Sensor (Required)</label>
+          <select id="entity">
+            ${buildOptions(sensors, this._config.entity)}
+          </select>
+        </div>
 
-        <ha-entity-picker 
-          id="days_left_entity" 
-          label="Sensor Expiry / Countdown Sensor" 
-          .hass=${this._hass} 
-          .value=${this._config.days_left_entity || ''} 
-          include-domains='["sensor"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Sensor Expiry/Countdown Sensor</label>
+          <select id="days_left_entity">
+            ${buildOptions(sensors, this._config.days_left_entity)}
+          </select>
+        </div>
 
-        <ha-entity-picker 
-          id="iob_entity" 
-          label="Insulin On Board (IOB) Sensor" 
-          .hass=${this._hass} 
-          .value=${this._config.iob_entity || ''} 
-          include-domains='["sensor"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Insulin On Board (IOB) Sensor</label>
+          <select id="iob_entity">
+            ${buildOptions(sensors, this._config.iob_entity)}
+          </select>
+        </div>
 
-        <ha-entity-picker 
-          id="cob_entity" 
-          label="Carbs On Board (COB) Sensor" 
-          .hass=${this._hass} 
-          .value=${this._config.cob_entity || ''} 
-          include-domains='["sensor"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Carbs On Board (COB) Sensor</label>
+          <select id="cob_entity">
+            ${buildOptions(sensors, this._config.cob_entity)}
+          </select>
+        </div>
 
-        <ha-entity-picker 
-          id="req_entity" 
-          label="Carbs Required (REQ) Sensor" 
-          .hass=${this._hass} 
-          .value=${this._config.req_entity || ''} 
-          include-domains='["sensor"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Carbs Required (REQ) Sensor</label>
+          <select id="req_entity">
+            ${buildOptions(sensors, this._config.req_entity)}
+          </select>
+        </div>
 
-        <ha-entity-picker 
-          id="a1c_entity" 
-          label="Estimated A1c Sensor (Optional)" 
-          .hass=${this._hass} 
-          .value=${this._config.a1c_entity || ''} 
-          include-domains='["sensor"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Estimated A1c Sensor (Optional)</label>
+          <select id="a1c_entity">
+            ${buildOptions(sensors, this._config.a1c_entity)}
+          </select>
+        </div>
 
-        <ha-entity-picker 
-          id="alexa_entity" 
-          label="Alexa Target (media_player or script string)" 
-          .hass=${this._hass} 
-          .value=${this._config.alexa_entity || ''} 
-          include-domains='["media_player", "script"]'
-          allow-custom-entity>
-        </ha-entity-picker>
+        <div class="form-row">
+          <label>Alexa Target (Supports media_player or custom script strings)</label>
+          <select id="alexa_entity">
+            ${buildOptions(listenables, this._config.alexa_entity)}
+          </select>
+        </div>
       </div>
     `;
 
-    // Attach native event bindings to capture entries smoothly without layout loss
-    this.shadowRoot.querySelectorAll('ha-entity-picker, ha-textfield').forEach(el => {
-      el.addEventListener('value-changed', (ev) => this._valueChanged(ev));
+    // Attach listeners
+    this.shadowRoot.querySelectorAll('input, select').forEach(el => {
       el.addEventListener('change', (ev) => this._valueChanged(ev));
+      if (el.tagName === 'INPUT') {
+          el.addEventListener('input', (ev) => this._valueChanged(ev));
+      }
     });
   }
 
   _valueChanged(ev) {
     if (!this._config || !this._hass) return;
     const target = ev.target;
-    const newValue = ev.detail && ev.detail.value !== undefined ? ev.detail.value : target.value;
     
-    if (this._config[target.id] === newValue) return;
+    if (this._config[target.id] === target.value) return;
 
     this._config = {
       ...this._config,
-      [target.id]: newValue
+      [target.id]: target.value
     };
 
     this.dispatchEvent(new CustomEvent("config-changed", {
@@ -393,5 +411,5 @@ window.customCards.push({
   type: "t1d-diabetes-card",
   name: "T1D Diabetes Tracker Card",
   preview: true,
-  description: "An advanced unified dashboard monitoring continuous blood telemetry modules alongside typeahead search configurations.",
+  description: "An advanced unified dashboard monitoring continuous blood telemetry modules.",
 });
