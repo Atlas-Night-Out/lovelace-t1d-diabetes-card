@@ -26,7 +26,6 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error("Please define a blood glucose entity");
     this._config = config;
   }
 
@@ -34,29 +33,46 @@ class T1DDiabetesCard extends HTMLElement {
     this._hass = hass;
     if (!this._config) return;
 
-    const bgEntity = hass.states[this._config.entity];
-    const daysEntity = hass.states[this._config.days_left_entity];
-    const iobEntity = hass.states[this._config.iob_entity];
-    const cobEntity = hass.states[this._config.cob_entity];
-    const reqEntity = hass.states[this._config.req_entity];
-    const a1cEntity = hass.states[this._config.a1c_entity];
+    const bgEntity = this._config.entity ? hass.states[this._config.entity] : null;
+    
+    // Safety Net: Render a helpful layout if the main entity isn't fully set up yet
+    if (!bgEntity) {
+      this.shadowRoot.innerHTML = `
+        <div style="padding: 16px; background: #1c1c1e; color: #ff3b30; border-radius: 12px; border: 1px solid #ff3b30; font-family: sans-serif;">
+          <strong style="color: #ff453a;">T1D Diabetes Tracker Card</strong><br>
+          <span style="font-size: 0.85rem; color: #e0e0e0;">Please select a valid Blood Glucose Sensor in the card configuration. Current: "${this._config.entity || 'None Selected'}"</span>
+        </div>
+      `;
+      return;
+    }
 
-    if (!bgEntity) return;
+    const daysEntity = this._config.days_left_entity ? hass.states[this._config.days_left_entity] : null;
+    const iobEntity = this._config.iob_entity ? hass.states[this._config.iob_entity] : null;
+    const cobEntity = this._config.cob_entity ? hass.states[this._config.cob_entity] : null;
+    const reqEntity = this._config.req_entity ? hass.states[this._config.req_entity] : null;
+    const a1cEntity = this._config.a1c_entity ? hass.states[this._config.a1c_entity] : null;
 
-    // Extracting Trend Arrows natively from attributes
-    const direction = bgEntity.attributes.direction || bgEntity.attributes.trend || '';
-    const arrowMap = {
-      'Flat': '→', 'Stable': '→', '→': '→',
-      'FortyFiveUp': '↗', '↗': '↗',
-      'SingleUp': '↑', '↑': '↑',
-      'DoubleUp': '⇈', '⇈': '⇈',
-      'FortyFiveDown': '↘', '↘': '↘',
-      'SingleDown': '↓', '↓': '↓',
-      'DoubleDown': '⇊', '⇊': '⇊'
-    };
-    const trendArrow = arrowMap[direction] || '';
+    // Fallback Parsing for Trend Arrows
+    const direction = (bgEntity.attributes.direction || bgEntity.attributes.trend || bgEntity.attributes.trend_arrow || '').toLowerCase();
+    let trendArrow = '→';
+    if (direction.includes('up')) {
+      trendArrow = direction.includes('double') ? '⇈' : (direction.includes('fortyfive') || direction.includes('45') ? '↗' : '↑');
+    } else if (direction.includes('down')) {
+      trendArrow = direction.includes('double') ? '⇊' : (direction.includes('fortyfive') || direction.includes('45') ? '↘' : '↓');
+    } else if (direction.includes('flat') || direction.includes('stable')) {
+      trendArrow = '→';
+    } else if (bgEntity.attributes.direction || bgEntity.attributes.trend) {
+      trendArrow = bgEntity.attributes.direction || bgEntity.attributes.trend;
+    }
 
-    // Safeguard values against undefined selections
+    // Dynamic Circular Indicator Logic
+    const bgVal = parseFloat(bgEntity.state);
+    let circleColor = '#4cd964'; // Green
+    if (!isNaN(bgVal)) {
+      if (bgVal < 4.0) circleColor = '#ff3b30'; // Low Red
+      else if (bgVal > 10.0) circleColor = '#ff9500'; // High Orange
+    }
+
     const countdownText = daysEntity ? daysEntity.state : 'N/A';
     const iobValue = iobEntity ? `${iobEntity.state} ${iobEntity.attributes.unit_of_measurement || 'U'}` : '0.0 U';
     const cobValue = cobEntity ? `${cobEntity.state} ${cobEntity.attributes.unit_of_measurement || 'g'}` : '0 g';
@@ -84,19 +100,36 @@ class T1DDiabetesCard extends HTMLElement {
           justify-content: space-between;
           align-items: center;
         }
-        .bg-container {
+        .bg-circle-badge {
           display: flex;
           align-items: center;
-          gap: 8px;
+          justify-content: center;
+          width: 76px;
+          height: 76px;
+          border-radius: 50%;
+          border: 4px solid ${circleColor};
+          position: relative;
+          background: rgba(255, 255, 255, 0.02);
         }
         .bg-value {
-          font-size: 2.6rem;
+          font-size: 1.9rem;
           font-weight: bold;
-          letter-spacing: -1px;
+          letter-spacing: -0.5px;
         }
-        .trend-arrow {
-          font-size: 2rem;
-          color: #a0a0a5;
+        .trend-arrow-overlay {
+          position: absolute;
+          bottom: -4px;
+          right: -4px;
+          background: #1c1c1e;
+          border-radius: 50%;
+          width: 26px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.1rem;
+          border: 2px solid ${circleColor};
+          color: #ffffff;
         }
         .right-panel {
           text-align: right;
@@ -111,7 +144,7 @@ class T1DDiabetesCard extends HTMLElement {
         .meta-line {
           font-size: 0.85rem;
           color: #a0a0a5;
-          margin-top: -6px;
+          margin-top: -4px;
         }
         .stats-grid {
           display: grid;
@@ -151,19 +184,16 @@ class T1DDiabetesCard extends HTMLElement {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          transition: background 0.2s, transform 0.1s;
         }
-        .alexa-btn:hover { background: #0082b3; }
-        .alexa-btn:active { transform: scale(0.98); }
       </style>
 
       <div class="card">
         ${this._config.show_title ? `<h3 style="margin: 0; font-size: 1.1rem; color: #a0a0a5;">${this._config.title || 'Diabetes Tracker'}</h3>` : ''}
         
         <div class="main-row">
-          <div class="bg-container">
+          <div class="bg-circle-badge">
             <div class="bg-value">${bgEntity.state}</div>
-            ${trendArrow ? `<div class="trend-arrow">${trendArrow}</div>` : ''}
+            <div class="trend-arrow-overlay">${trendArrow}</div>
           </div>
           <div class="right-panel">
             <div>Sensor Expires in:</div>
@@ -207,9 +237,7 @@ class T1DDiabetesCard extends HTMLElement {
     if (!target) return;
 
     if (target.startsWith('script.')) {
-      // Safely calls your native custom script sequence
-      const scriptName = target.split('.')[1];
-      this._hass.callService('script', scriptName);
+      this._hass.callService('script', target.split('.')[1]);
     } else {
       const bg = this._hass.states[this._config.entity]?.state || 'unknown';
       this._hass.callService('tts', 'google_translate_say', {
@@ -224,7 +252,7 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 
 
 // ==========================================
-// PART 2: THE VISUAL CODE EDITOR (SEARCHABLE!)
+// PART 2: THE NATIVE UI CONFIGURATION EDITOR
 // ==========================================
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
@@ -234,6 +262,7 @@ class T1DDiabetesCardEditor extends HTMLElement {
 
   setConfig(config) {
     this._config = config;
+    this._render();
   }
 
   set hass(hass) {
@@ -244,94 +273,113 @@ class T1DDiabetesCardEditor extends HTMLElement {
   _render() {
     if (!this._hass || !this._config) return;
 
-    const allEntities = Object.keys(this._hass.states);
-    const sensors = allEntities.filter(e => e.startsWith('sensor.'));
-    const listenables = allEntities.filter(e => e.startsWith('media_player.') || e.startsWith('script.'));
-
     this.shadowRoot.innerHTML = `
       <style>
-        .form { font-family: sans-serif; display: flex; flex-direction: column; gap: 12px; }
-        .form-row { display: flex; flex-direction: column; gap: 4px; }
-        label { font-weight: bold; font-size: 0.85rem; color: var(--secondary-text-color, #e0e0e0); }
-        input {
-          padding: 10px;
-          border-radius: 6px;
-          border: 1px solid rgba(255,255,255,0.2);
-          background: var(--card-background-color, #2c2c2e);
-          color: var(--primary-text-color, #fff);
-          font-size: 0.9rem;
+        .form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding: 10px 0;
         }
-        input:focus { border-color: #00a0e0; outline: none; }
+        ha-entity-picker, ha-textfield {
+          display: block;
+          width: 100%;
+        }
       </style>
 
       <div class="form">
-        <div class="form-row">
-          <label>Card Title</label>
-          <input type="text" id="title" value="${this._config.title || ''}">
-        </div>
+        <ha-textfield 
+          id="title" 
+          label="Card Title" 
+          .value="${this._config.title || ''}">
+        </ha-textfield>
 
-        <!-- HTML5 Datalists inject immediate fuzzy-search capabilities into input bars -->
-        <datalist id="sensor-options">
-          ${sensors.map(e => `<option value="${e}"></option>`).join('')}
-        </datalist>
+        <ha-entity-picker 
+          id="entity" 
+          label="Blood Glucose Sensor (Required)" 
+          .hass=${this._hass} 
+          .value=${this._config.entity || ''} 
+          include-domains='["sensor"]'
+          allow-custom-entity>
+        </ha-entity-picker>
 
-        <datalist id="alexa-options">
-          ${listenables.map(e => `<option value="${e}"></option>`).join('')}
-        </datalist>
+        <ha-entity-picker 
+          id="days_left_entity" 
+          label="Sensor Expiry / Countdown Sensor" 
+          .hass=${this._hass} 
+          .value=${this._config.days_left_entity || ''} 
+          include-domains='["sensor"]'
+          allow-custom-entity>
+        </ha-entity-picker>
 
-        <div class="form-row">
-          <label>Blood Glucose Sensor (Required)</label>
-          <input type="text" id="entity" list="sensor-options" value="${this._config.entity || ''}">
-        </div>
+        <ha-entity-picker 
+          id="iob_entity" 
+          label="Insulin On Board (IOB) Sensor" 
+          .hass=${this._hass} 
+          .value=${this._config.iob_entity || ''} 
+          include-domains='["sensor"]'
+          allow-custom-entity>
+        </ha-entity-picker>
 
-        <div class="form-row">
-          <label>Sensor Expiry/Countdown Sensor</label>
-          <input type="text" id="days_left_entity" list="sensor-options" value="${this._config.days_left_entity || ''}">
-        </div>
+        <ha-entity-picker 
+          id="cob_entity" 
+          label="Carbs On Board (COB) Sensor" 
+          .hass=${this._hass} 
+          .value=${this._config.cob_entity || ''} 
+          include-domains='["sensor"]'
+          allow-custom-entity>
+        </ha-entity-picker>
 
-        <div class="form-row">
-          <label>Insulin On Board (IOB) Sensor</label>
-          <input type="text" id="iob_entity" list="sensor-options" value="${this._config.iob_entity || ''}">
-        </div>
+        <ha-entity-picker 
+          id="req_entity" 
+          label="Carbs Required (REQ) Sensor" 
+          .hass=${this._hass} 
+          .value=${this._config.req_entity || ''} 
+          include-domains='["sensor"]'
+          allow-custom-entity>
+        </ha-entity-picker>
 
-        <div class="form-row">
-          <label>Carbs On Board (COB) Sensor</label>
-          <input type="text" id="cob_entity" list="sensor-options" value="${this._config.cob_entity || ''}">
-        </div>
+        <ha-entity-picker 
+          id="a1c_entity" 
+          label="Estimated A1c Sensor (Optional)" 
+          .hass=${this._hass} 
+          .value=${this._config.a1c_entity || ''} 
+          include-domains='["sensor"]'
+          allow-custom-entity>
+        </ha-entity-picker>
 
-        <div class="form-row">
-          <label>Carbs Required (REQ) Sensor</label>
-          <input type="text" id="req_entity" list="sensor-options" value="${this._config.req_entity || ''}">
-        </div>
-
-        <div class="form-row">
-          <label>Estimated A1c Sensor (Optional)</label>
-          <input type="text" id="a1c_entity" list="sensor-options" value="${this._config.a1c_entity || ''}">
-        </div>
-
-        <div class="form-row">
-          <label>Alexa Target (Supports media_player or script.alexa_type_one_dave)</label>
-          <input type="text" id="alexa_entity" list="alexa-options" value="${this._config.alexa_entity || ''}">
-        </div>
+        <ha-entity-picker 
+          id="alexa_entity" 
+          label="Alexa Target (media_player or script string)" 
+          .hass=${this._hass} 
+          .value=${this._config.alexa_entity || ''} 
+          include-domains='["media_player", "script"]'
+          allow-custom-entity>
+        </ha-entity-picker>
       </div>
     `;
 
-    this.shadowRoot.querySelectorAll('input').forEach(el => {
-      el.addEventListener('input', (ev) => this._valueChanged(ev));
+    // Attach native event bindings to capture entries smoothly without layout loss
+    this.shadowRoot.querySelectorAll('ha-entity-picker, ha-textfield').forEach(el => {
+      el.addEventListener('value-changed', (ev) => this._valueChanged(ev));
+      el.addEventListener('change', (ev) => this._valueChanged(ev));
     });
   }
 
   _valueChanged(ev) {
     if (!this._config || !this._hass) return;
     const target = ev.target;
+    const newValue = ev.detail && ev.detail.value !== undefined ? ev.detail.value : target.value;
     
-    const newConfig = {
+    if (this._config[target.id] === newValue) return;
+
+    this._config = {
       ...this._config,
-      [target.id]: target.value
+      [target.id]: newValue
     };
 
     this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config: newConfig },
+      detail: { config: this._config },
       bubbles: true,
       composed: true,
     }));
@@ -345,5 +393,5 @@ window.customCards.push({
   type: "t1d-diabetes-card",
   name: "T1D Diabetes Tracker Card",
   preview: true,
-  description: "An advanced, unified card tracking blood glucose metrics alongside localized IOB, COB, and REQ telemetry modules.",
+  description: "An advanced unified dashboard monitoring continuous blood telemetry modules alongside typeahead search configurations.",
 });
