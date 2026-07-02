@@ -1,5 +1,5 @@
 /**
- * T1D Diabetes Tracker Card
+ * T1D Diabetes Tracker Card - V1.2.8
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -31,20 +31,21 @@ class T1DDiabetesCard extends HTMLElement {
     };
 
     const glucoseVal = parseFloat(getState(this._config.entity));
-    // A1c calculation
     const a1cEstimate = !isNaN(glucoseVal) ? ((glucoseVal + 46.7) / 28.7).toFixed(1) : "N/A";
     const unit = this._config.unit_type || "mmol/L";
 
     this.shadowRoot.innerHTML = `
       <style>
-        ha-card { padding: 16px; border-radius: 12px; background: #1c1c1e; color: white; }
+        ha-card { padding: 16px; border-radius: 12px; background: #1c1c1e; color: white; border: 1px solid #444; }
         .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
         .main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
         .glucose-val { font-size: 2.5rem; font-weight: bold; color: #00ff00; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .box { background: #2c2c2e; padding: 10px; border-radius: 8px; text-align: center; }
-        .box-label { font-size: 0.6rem; color: #a0a0a0; text-transform: uppercase; margin-bottom: 4px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+        .box { background: #252527; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #3a3a3a; }
+        .box-label { font-size: 0.6rem; color: #888; text-transform: uppercase; margin-bottom: 4px; }
         .box-val { font-size: 0.9rem; font-weight: bold; }
+        .alexa-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn { background: #333; padding: 8px; border-radius: 6px; text-align: center; font-size: 0.8rem; cursor: pointer; border: 1px solid #444; color: #fff; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "T1D Tracker"}</div>
@@ -57,7 +58,11 @@ class T1DDiabetesCard extends HTMLElement {
           <div class="box"><div class="box-label">COB</div><div class="box-val">${getState(this._config.cob_entity)}</div></div>
           <div class="box"><div class="box-label">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
           <div class="box"><div class="box-label">A1c</div><div class="box-val">${a1cEstimate}%</div></div>
-          <div class="box"><div class="box-label">Days Left</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
+          <div class="box" style="grid-column: span 2;"><div class="box-label">Days Remaining</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
+        </div>
+        <div class="alexa-row">
+          <div class="btn">Alexa Readout 1</div>
+          <div class="btn">Alexa Readout 2</div>
         </div>
       </ha-card>
     `;
@@ -113,5 +118,5 @@ window.customCards.push({
   type: 't1d-diabetes-card', 
   name: 'T1D Diabetes Tracker Card', 
   preview: true, 
-  description: 'Full T1D management card.' 
+  description: 'Full T1D management card V1.2.8' 
 });
