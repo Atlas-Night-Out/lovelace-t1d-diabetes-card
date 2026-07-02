@@ -1,4 +1,4 @@
-# T1DDiabetesCard v1.3.2
+# T1DDiabetesCard v1.3.5
 
 A custom Home Assistant card for T1D management. Featuring a sleek, custom-styled dark interface with high-visibility data monitoring and integrated voice command support.
 
