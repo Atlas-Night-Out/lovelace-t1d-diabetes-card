@@ -12,11 +12,10 @@ A sleek, configurable dashboard card for Home Assistant designed for T1D managem
 
 ### Configuration
 - Add the card to your dashboard via the UI.
-- **Entity**: Select your glucose sensor.
-- **Units**: Toggle between `mmol/L` or `mg/dL` to ensure accurate GMI/A1C calculations.
-- **IOB/Dexcom Buttons**: Configure the paths to your specific Alexa service calls.
+- **Visual Editor**: The card features a built-in configuration menu. Simply open the card editor, and use the dropdown menus to select your Blood Glucose, IOB, COB, and Expiry sensors.
+- **Alexa Integration**: Select your `media_player` or specific `script` entity in the Alexa Target dropdown to enable voice readouts.
 
 ## Features
-* **Real-time GMI/A1C**: Automatically calculates your estimated A1C based on your chosen units.
+* **Real-time GMI/A1C**: Automatically calculates your estimated A1C based on your sensor data.
 * **Sensor Lifecycle**: Automatically tracks the 10-day Dexcom sensor lifespan.
-* **Visual Editor**: No manual YAML required; configure thresholds, titles, and display options directly from the card settings.
+* **Visual Editor**: No manual YAML required; configure all entities, titles, and display options directly via the card's native configuration settings.
