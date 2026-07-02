@@ -30,29 +30,39 @@ class T1DDiabetesCard extends HTMLElement {
       return stateObj ? stateObj.state : "N/A";
     };
 
+    const glucoseVal = parseFloat(getState(this._config.entity));
+    // A1c calculation based on current glucose sensor input
+    const a1cEstimate = !isNaN(glucoseVal) ? ((glucoseVal + 46.7) / 28.7).toFixed(1) : "N/A";
+    
+    const unit = this._config.unit_type || "mmol/L";
+
     this.shadowRoot.innerHTML = `
       <style>
-        ha-card { padding: 16px; border-radius: 12px; }
-        .title { font-size: 1.2rem; margin-bottom: 12px; font-weight: 500; }
-        .row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .label { opacity: 0.7; }
-        .value { font-weight: bold; }
+        ha-card { padding: 16px; border-radius: 12px; background: #1c1c1e; color: white; }
+        .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
+        .main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .glucose-val { font-size: 2.5rem; font-weight: bold; color: #00ff00; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .box { background: #2c2c2e; padding: 10px; border-radius: 8px; text-align: center; }
+        .box-label { font-size: 0.7rem; color: #a0a0a0; text-transform: uppercase; }
+        .box-val { font-size: 1rem; font-weight: bold; margin-top: 4px; }
       </style>
       <ha-card>
-        <div class="title">${this._config.title || "T1D Tracker"}</div>
-        <div class="row"><span class="label">Glucose:</span><span class="value">${getState(this._config.entity)}</span></div>
-        <div class="row"><span class="label">IOB:</span><span class="value">${getState(this._config.iob_entity)}</span></div>
-        <div class="row"><span class="label">COB:</span><span class="value">${getState(this._config.cob_entity)}</span></div>
-        <div class="row"><span class="label">REQ:</span><span class="value">${getState(this._config.req_entity)}</span></div>
-        <div class="row"><span class="label">A1c:</span><span class="value">${getState(this._config.a1c_entity)}</span></div>
-        <div class="row"><span class="label">Sensor Days:</span><span class="value">${getState(this._config.days_entity)}</span></div>
-        <div class="row"><span class="label">Units:</span><span class="value">${this._config.unit_type || "mg/dL"}</span></div>
+        <div class="title">${this._config.title || "TDAVE GLUCOSE"}</div>
+        <div class="main-row">
+          <div class="glucose-val">${getState(this._config.entity)} <span style="font-size: 1rem;">${unit}</span></div>
+          <div style="font-size: 1.5rem;">→ Steady</div>
+        </div>
+        <div class="grid">
+          <div class="box"><div class="box-label">Days Left</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
+          <div class="box"><div class="box-label">Est. A1c</div><div class="box-val">${a1cEstimate}%</div></div>
+        </div>
       </ha-card>
     `;
   }
 }
 
-// ── Editor ──────────────────────────────────
+// ── Configuration Editor ──────────────────────────────────
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -71,12 +81,8 @@ class T1DDiabetesCardEditor extends HTMLElement {
 
     const schema = [
       { name: "title", label: "Card Title", selector: { text: {} } },
-      { name: "unit_type", label: "Units (e.g., mg/dL or mmol/L)", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
+      { name: "unit_type", label: "Units", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
       { name: "entity", label: "Blood Glucose Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "iob_entity", label: "IOB Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "cob_entity", label: "COB Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "req_entity", label: "REQ Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "a1c_entity", label: "A1c Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "days_entity", label: "Sensor Days Remaining", selector: { entity: { domain: "sensor" } } }
     ];
 
@@ -94,14 +100,8 @@ class T1DDiabetesCardEditor extends HTMLElement {
   }
 }
 
-// ── Registration ──────────────────────────────────
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 't1d-diabetes-card',
-  name: 'T1D Diabetes Tracker Card',
-  preview: true,
-  description: 'Full T1D management card.'
-});
+window.customCards.push({ type: 't1d-diabetes-card', name: 'T1D Diabetes Tracker Card', preview: true, description: 'Sleek T1D tracking.' });
