@@ -1,6 +1,6 @@
 /**
- * T1D Diabetes Tracker Card - V1.4.4
- * Optimized for Dwain Dashboard Integration
+ * T1D Diabetes Tracker Card - V1.4.5
+ * Full implementation with restored "shady green" styling
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -52,13 +52,13 @@ class T1DDiabetesCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { 
-          background: transparent !important; 
-          border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+          background: rgba(0, 187, 0, 0.06) !important; 
+          border: 1px solid rgba(0, 187, 0, 0.2) !important; 
           border-radius: 12px !important; 
           padding: 12px !important; 
           color: white; 
         }
-        .title { font-size: 1rem; font-weight: 500; margin-bottom: 10px; opacity: 0.8; }
+        .title { font-size: 1rem; font-weight: 500; margin-bottom: 10px; opacity: 0.9; }
         .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .glucose-box { border: 1.5px solid #3498db; border-radius: 12px; padding: 6px 14px; display: inline-block; }
         .glucose-val { font-size: 1.8rem; font-weight: bold; color: #3498db; }
@@ -66,11 +66,11 @@ class T1DDiabetesCard extends HTMLElement {
         .arrow { font-size: 1.6rem; display: block; }
         .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
         .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-        .box { border: 1px solid rgba(0, 187, 0, 0.1); padding: 6px; border-radius: 6px; text-align: center; position: relative; font-size: 0.85rem; }
+        .box { border: 1px solid rgba(0, 187, 0, 0.15); padding: 6px; border-radius: 6px; text-align: center; position: relative; font-size: 0.85rem; }
         .tab-iob { border-top: 3px solid #3498db; }
         .tab-cob { border-top: 3px solid #2ecc71; }
         .tab-req { border-top: 3px solid #e67e22; }
-        .btn { border: 1px solid rgba(0, 187, 0, 0.15); padding: 6px; border-radius: 6px; text-align: center; color: #66ff66; font-weight: 500; cursor: pointer; font-size: 0.85rem; }
+        .btn { border: 1px solid rgba(0, 187, 0, 0.2); padding: 6px; border-radius: 6px; text-align: center; color: #66ff66; font-weight: 500; cursor: pointer; font-size: 0.85rem; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
@@ -132,4 +132,4 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.4', preview: true, description: 'Full T1D management card V1.4.4' });
+window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.5', preview: true, description: 'Full T1D management card V1.4.5' });
