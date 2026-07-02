@@ -45,11 +45,14 @@ class T1DDiabetesCard extends HTMLElement {
         ha-card { padding: 16px; border-radius: 12px; background: #0d120f; color: white; border: 2px solid #66ff66; }
         .title { font-size: 1.3rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
         .main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .glucose-container { border: 2px solid #3498db; border-radius: 50px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; }
+        .glucose-circle { border: 2px solid #3498db; border-radius: 50px; padding: 12px 16px; display: flex; align-items: center; gap: 6px; }
         .glucose-val { font-size: 2.5rem; font-weight: bold; color: #3498db; }
-        .status-circle { width: 14px; height: 14px; background: #66ff66; border-radius: 50%; border: 2px solid #fff; display: inline-block; }
+        .unit-text { font-size: 0.8rem; color: #fff; }
+        .trend-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .status-circle { width: 14px; height: 14px; background: #66ff66; border-radius: 50%; border: 2px solid #fff; }
+        .arrow { font-size: 1.5rem; color: #fff; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
-        .box { background: #0e1410; padding: 12px; border-radius: 8px; text-align: center; border: 2px solid #2d4536; }
+        .box { background: #0e1410; padding: 10px; border-radius: 8px; text-align: center; border: 2px solid #2d4536; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
         .box-label { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
         .box-val { font-size: 1rem; font-weight: bold; }
@@ -59,8 +62,8 @@ class T1DDiabetesCard extends HTMLElement {
       <ha-card>
         <div class="title">${this._config.title || "T1D Tracker"}</div>
         <div class="main-row">
-          <div class="glucose-container"><span class="glucose-val">${getState(this._config.entity)}</span> <span style="font-size: 1.2rem; color: #fff;">${unit}</span></div>
-          <div style="display: flex; align-items: center; gap: 6px;"><span class="status-circle"></span><span style="font-size: 1.1rem;">Steady</span></div>
+          <div class="glucose-circle"><span class="glucose-val">${getState(this._config.entity)}</span> <span class="unit-text">${unit}</span></div>
+          <div class="trend-box"><span class="status-circle"></span><span class="arrow">→</span></div>
         </div>
         <div class="grid">
           <div class="box" style="border-top: 5px solid #3498db;"><div class="box-label" style="color:#3498db">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
@@ -85,13 +88,9 @@ class T1DDiabetesCard extends HTMLElement {
 
 // ── Configuration Editor ──────────────────────────────────
 class T1DDiabetesCardEditor extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
+  constructor() { super(); this.attachShadow({ mode: 'open' }); }
   setConfig(config) { this._config = config; }
   set hass(hass) { this._hass = hass; this._render(); }
-
   _render() {
     if (!this._hass || !this._config || this.shadowRoot.querySelector('ha-form')) return;
     const schema = [
