@@ -43,33 +43,36 @@ class T1DDiabetesCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { padding: 16px; border-radius: 12px; background: #0d120f; color: white; border: 2px solid #66ff66; }
-        .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
+        .title { font-size: 1.3rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
         .main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .glucose-val { font-size: 2.5rem; font-weight: bold; color: #007bff; }
-        .status-circle { width: 12px; height: 12px; background: #66ff66; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .glucose-val { font-size: 3rem; font-weight: bold; color: #3498db; }
+        .status-circle { width: 14px; height: 14px; background: #66ff66; border-radius: 50%; border: 2px solid #fff; display: inline-block; margin-right: 8px; }
+        .arrow { font-size: 1.5rem; color: #fff; margin-left: 10px; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-        .box { background: #0e1410; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #2d4536; }
-        .box-label { font-size: 0.6rem; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-        .box-val { font-size: 0.9rem; font-weight: bold; }
+        .box { background: #0e1410; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #2d4536; }
+        .box-label { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .box-val { font-size: 1.1rem; font-weight: bold; }
         .alexa-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn { background: #0d120f; padding: 8px; border-radius: 6px; text-align: center; font-size: 0.8rem; cursor: pointer; border: 1px solid #66ff66; color: #66ff66; }
+        .btn { background: #0d120f; padding: 10px; border-radius: 6px; text-align: center; font-size: 0.9rem; cursor: pointer; border: 1px solid #66ff66; color: #66ff66; font-weight: bold; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "T1D Tracker"}</div>
         <div class="main-row">
-          <div class="glucose-val">${getState(this._config.entity)} <span style="font-size: 1rem; color: #fff;">${unit}</span></div>
-          <div><span class="status-circle"></span>Steady</div>
+          <div class="glucose-val">${getState(this._config.entity)} <span style="font-size: 1.2rem; color: #fff;">${unit}</span></div>
+          <div><span class="status-circle"></span><span class="arrow">→</span> Steady</div>
         </div>
         <div class="grid">
-          <div class="box" style="border-top: 3px solid #ff9800;"><div class="box-label" style="color:#ff9800">IOB</div><div class="box-val">${getState(this._config.iob_entity)}</div></div>
-          <div class="box" style="border-top: 3px solid #2196f3;"><div class="box-label" style="color:#2196f3">COB</div><div class="box-val">${getState(this._config.cob_entity)}</div></div>
-          <div class="box" style="border-top: 3px solid #9c27b0;"><div class="box-label" style="color:#9c27b0">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
-          <div class="box"><div class="box-label">A1c</div><div class="box-val">${a1cEstimate}%</div></div>
-          <div class="box" style="grid-column: span 2;"><div class="box-label">Days Remaining</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
+          <div class="box" style="border-top: 4px solid #3498db;"><div class="box-label" style="color:#3498db">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
+          <div class="box" style="border-top: 4px solid #2ecc71;"><div class="box-label" style="color:#2ecc71">COB</div><div class="box-val">${getState(this._config.cob_entity)} g</div></div>
+          <div class="box" style="border-top: 4px solid #e67e22;"><div class="box-label" style="color:#e67e22">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
+          <div class="box" style="grid-column: span 3; display: flex; justify-content: space-around;">
+            <div><div class="box-label">A1c</div><div class="box-val">${a1cEstimate}%</div></div>
+            <div><div class="box-label">Sensor Days</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
+          </div>
         </div>
         <div class="alexa-row">
-          <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa Readout 1"}</div>
-          <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa Readout 2"}</div>
+          <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
+          <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa 2"}</div>
         </div>
       </ha-card>
     `;
