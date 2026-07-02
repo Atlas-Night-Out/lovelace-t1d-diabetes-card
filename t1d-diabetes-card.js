@@ -1,5 +1,5 @@
 /**
- * T1D Diabetes Tracker Card - V1.4.0
+ * T1D Diabetes Tracker Card - V1.4.1
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -39,7 +39,7 @@ class T1DDiabetesCard extends HTMLElement {
     const glucoseVal = parseFloat(getState(this._config.entity));
     const unit = this._config.unit_type || "mmol/L";
     
-    // Calculation logic tied to the specific unit selected in the config
+    // Correct A1c Calculation Logic
     let a1cEstimate = "N/A";
     if (!isNaN(glucoseVal)) {
         if (unit === "mmol/L") {
@@ -51,32 +51,37 @@ class T1DDiabetesCard extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        ha-card { padding: 16px; border-radius: 16px; background: #0d120f; color: white; border: 3px solid #66ff66; }
-        .title { font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; color: #fff; }
-        .glucose-container { border: 3px solid #3498db; border-radius: 20px; padding: 12px; display: inline-flex; align-items: center; gap: 10px; }
-        .glucose-val { font-size: 3rem; font-weight: bold; color: #3498db; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        .box { border: 2px solid #66ff66; padding: 15px; border-radius: 10px; text-align: center; }
-        .a1c-box { border: 2px solid #66ff66; padding: 15px; border-radius: 10px; text-align: center; grid-column: span 1; }
-        .a1c-val { font-size: 2.2rem; font-weight: bold; }
-        .btn { border: 3px solid #66ff66; padding: 15px; border-radius: 10px; text-align: center; color: #66ff66; font-weight: bold; cursor: pointer; }
+        ha-card { 
+          background: rgba(0, 187, 0, 0.06) !important; 
+          border: 1.5px solid rgba(0, 187, 0, 0.3) !important; 
+          border-radius: 12px !important; 
+          padding: 16px; 
+          color: white; 
+        }
+        .title { font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; }
+        .glucose-box { border: 1.5px solid #3498db; border-radius: 12px; padding: 12px; display: inline-block; margin-bottom: 12px; }
+        .glucose-val { font-size: 2.5rem; font-weight: bold; color: #3498db; }
+        .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+        .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .box { border: 1px solid #66ff66; padding: 12px; border-radius: 8px; text-align: center; }
+        .btn { border: 1.5px solid #66ff66; padding: 10px; border-radius: 8px; text-align: center; color: #66ff66; font-weight: bold; cursor: pointer; }
       </style>
       <ha-card>
-        <div class="title">${this._config.title || "T1D Tracker"}</div>
-        <div class="glucose-container"><span class="glucose-val">${getState(this._config.entity)}</span> ${unit}</div>
-        <div style="font-size: 1.2rem; margin-top: 10px;">● Steady →</div>
-        <div class="grid">
+        <div class="title">${this._config.title || "TDave Glucose"}</div>
+        <div class="glucose-box"><span class="glucose-val">${getState(this._config.entity)}</span> ${unit}</div>
+        <div style="margin-bottom: 12px;">● Steady →</div>
+        <div class="grid-triple">
            <div class="box">IOB<br><b>${getState(this._config.iob_entity)} U</b></div>
            <div class="box">COB<br><b>${getState(this._config.cob_entity)} g</b></div>
            <div class="box">REQ<br><b>${getState(this._config.req_entity)}</b></div>
         </div>
-        <div class="grid">
-           <div class="a1c-box">A1C<br><span class="a1c-val">${a1cEstimate}%</span></div>
-           <div class="box" style="grid-column: span 2;">SENSOR DAYS<br><b>${getState(this._config.days_entity)}</b></div>
+        <div class="grid-double">
+           <div class="box">A1C<br><b style="font-size:1.5rem">${a1cEstimate}%</b></div>
+           <div class="box">SENSOR DAYS<br><b>${getState(this._config.days_entity)}</b></div>
         </div>
-        <div class="grid">
+        <div class="grid-double">
            <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
-           <div class="btn" id="alexa2" style="grid-column: span 2;">${this._config.alexa_name_2 || "Alexa 2"}</div>
+           <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa 2"}</div>
         </div>
       </ha-card>
     `;
