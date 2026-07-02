@@ -41,20 +41,23 @@ class T1DDiabetesCard extends HTMLElement {
         .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 16px; color: #a0a0a0; }
         .main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
         .glucose-val { font-size: 2.5rem; font-weight: bold; color: #00ff00; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .box { background: #2c2c2e; padding: 10px; border-radius: 8px; text-align: center; }
-        .box-label { font-size: 0.7rem; color: #a0a0a0; text-transform: uppercase; }
-        .box-val { font-size: 1rem; font-weight: bold; margin-top: 4px; }
+        .box-label { font-size: 0.6rem; color: #a0a0a0; text-transform: uppercase; margin-bottom: 4px; }
+        .box-val { font-size: 0.9rem; font-weight: bold; }
       </style>
       <ha-card>
-        <div class="title">${this._config.title || "TDAVE GLUCOSE"}</div>
+        <div class="title">${this._config.title || "T1D Tracker"}</div>
         <div class="main-row">
           <div class="glucose-val">${getState(this._config.entity)} <span style="font-size: 1rem;">${unit}</span></div>
-          <div style="font-size: 1.5rem;">→ Steady</div>
+          <div style="font-size: 1.2rem; opacity: 0.8;">→ Steady</div>
         </div>
         <div class="grid">
+          <div class="box"><div class="box-label">IOB</div><div class="box-val">${getState(this._config.iob_entity)}</div></div>
+          <div class="box"><div class="box-label">COB</div><div class="box-val">${getState(this._config.cob_entity)}</div></div>
+          <div class="box"><div class="box-label">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
+          <div class="box"><div class="box-label">A1c</div><div class="box-val">${a1cEstimate}%</div></div>
           <div class="box"><div class="box-label">Days Left</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
-          <div class="box"><div class="box-label">Est. A1c</div><div class="box-val">${a1cEstimate}%</div></div>
         </div>
       </ha-card>
     `;
@@ -82,6 +85,9 @@ class T1DDiabetesCardEditor extends HTMLElement {
       { name: "title", label: "Card Title", selector: { text: {} } },
       { name: "unit_type", label: "Units", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
       { name: "entity", label: "Blood Glucose Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "iob_entity", label: "IOB Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "cob_entity", label: "COB Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "req_entity", label: "REQ Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "days_entity", label: "Sensor Days Remaining", selector: { entity: { domain: "sensor" } } }
     ];
 
@@ -107,5 +113,5 @@ window.customCards.push({
   type: 't1d-diabetes-card', 
   name: 'T1D Diabetes Tracker Card', 
   preview: true, 
-  description: 'Sleek T1D tracking.' 
+  description: 'Full T1D management card.' 
 });
