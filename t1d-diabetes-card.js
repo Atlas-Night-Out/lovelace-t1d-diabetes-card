@@ -1,5 +1,5 @@
 /**
- * T1D Diabetes Tracker Card - V1.4.1
+ * T1D Diabetes Tracker Card - V1.4.2
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -39,7 +39,6 @@ class T1DDiabetesCard extends HTMLElement {
     const glucoseVal = parseFloat(getState(this._config.entity));
     const unit = this._config.unit_type || "mmol/L";
     
-    // Correct A1c Calculation Logic
     let a1cEstimate = "N/A";
     if (!isNaN(glucoseVal)) {
         if (unit === "mmol/L") {
@@ -59,8 +58,10 @@ class T1DDiabetesCard extends HTMLElement {
           color: white; 
         }
         .title { font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; }
-        .glucose-box { border: 1.5px solid #3498db; border-radius: 12px; padding: 12px; display: inline-block; margin-bottom: 12px; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .glucose-box { border: 1.5px solid #3498db; border-radius: 12px; padding: 8px 12px; display: inline-block; }
         .glucose-val { font-size: 2.5rem; font-weight: bold; color: #3498db; }
+        .status-area { font-size: 1.1rem; text-align: right; }
         .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
         .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
         .box { border: 1px solid #66ff66; padding: 12px; border-radius: 8px; text-align: center; }
@@ -68,8 +69,10 @@ class T1DDiabetesCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
-        <div class="glucose-box"><span class="glucose-val">${getState(this._config.entity)}</span> ${unit}</div>
-        <div style="margin-bottom: 12px;">● Steady →</div>
+        <div class="header-row">
+            <div class="glucose-box"><span class="glucose-val">${getState(this._config.entity)}</span> ${unit}</div>
+            <div class="status-area">● Steady →</div>
+        </div>
         <div class="grid-triple">
            <div class="box">IOB<br><b>${getState(this._config.iob_entity)} U</b></div>
            <div class="box">COB<br><b>${getState(this._config.cob_entity)} g</b></div>
@@ -125,4 +128,4 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.0', preview: true, description: 'Full T1D management card V1.4.0' });
+window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.1', preview: true, description: 'Full T1D management card V1.4.1' });
