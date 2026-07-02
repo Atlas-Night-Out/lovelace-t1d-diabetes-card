@@ -1,6 +1,6 @@
 /**
- * T1D Diabetes Card - V1.4.6
- * Full, complete implementation
+ * T1D Diabetes Card - V1.4.7
+ * Full, complete implementation (157 lines)
  * Stable naming: t1d-diabetes-card
  */
 
@@ -53,11 +53,12 @@ class T1DDiabetesCard extends HTMLElement {
         ha-card { background: rgba(0, 187, 0, 0.06) !important; border: 1px solid rgba(0, 187, 0, 0.2) !important; border-radius: 12px !important; padding: 12px !important; color: white; }
         .title { font-size: 1rem; font-weight: 500; margin-bottom: 10px; opacity: 0.9; }
         .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .circle-container { position: relative; width: 80px; height: 80px; }
+        .circle-container { position: relative; width: 90px; height: 90px; }
         .circle-svg { transform: rotate(-90deg); }
-        .circle-bg { fill: none; stroke: #333; stroke-width: 6; }
-        .circle-val { fill: none; stroke: ${color}; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 220; stroke-dashoffset: 40; }
-        .glucose-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .circle-bg { fill: none; stroke: #333; stroke-width: 8; }
+        .circle-val { fill: none; stroke: ${color}; stroke-width: 8; stroke-linecap: round; stroke-dasharray: 220; stroke-dashoffset: 40; }
+        .glucose-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; }
+        .glucose-num { font-size: 1.8rem; font-weight: bold; line-height: 1; }
         .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
         .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
         .box { border: 1px solid rgba(0, 187, 0, 0.15); padding: 6px; border-radius: 6px; text-align: center; font-size: 0.85rem; }
@@ -71,7 +72,7 @@ class T1DDiabetesCard extends HTMLElement {
         <div class="header-row">
             <div class="circle-container">
                 <svg class="circle-svg" viewBox="0 0 80 80"><circle class="circle-bg" cx="40" cy="40" r="35"/><circle class="circle-val" cx="40" cy="40" r="35"/></svg>
-                <div class="glucose-text"><div style="font-size:1.2rem; font-weight:bold">${getState(this._config.entity)}</div><div style="font-size:0.6rem">${unit}</div></div>
+                <div class="glucose-text"><div class="glucose-num">${getState(this._config.entity)}</div><div style="font-size:0.7rem">${unit}</div></div>
             </div>
             <div style="text-align: right">● Steady<br><span style="font-size:1.8rem">→</span></div>
         </div>
