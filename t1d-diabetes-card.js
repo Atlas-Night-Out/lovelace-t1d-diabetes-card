@@ -1,5 +1,6 @@
 /**
- * T1D Diabetes Tracker Card - V1.4.2
+ * T1D Diabetes Tracker Card - V1.4.3
+ * Full length implementation
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -39,6 +40,7 @@ class T1DDiabetesCard extends HTMLElement {
     const glucoseVal = parseFloat(getState(this._config.entity));
     const unit = this._config.unit_type || "mmol/L";
     
+    // A1c Logic - Precise conversion based on user-selected unit
     let a1cEstimate = "N/A";
     if (!isNaN(glucoseVal)) {
         if (unit === "mmol/L") {
@@ -59,27 +61,31 @@ class T1DDiabetesCard extends HTMLElement {
         }
         .title { font-size: 1.4rem; font-weight: bold; margin-bottom: 12px; }
         .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .glucose-box { border: 1.5px solid #3498db; border-radius: 12px; padding: 8px 12px; display: inline-block; }
+        .glucose-box { border: 1.5px solid #3498db; border-radius: 25px; padding: 12px 20px; display: inline-block; }
         .glucose-val { font-size: 2.5rem; font-weight: bold; color: #3498db; }
-        .status-area { font-size: 1.1rem; text-align: right; }
+        .status-area { font-size: 1.2rem; text-align: right; }
+        .arrow { font-size: 2.5rem; display: block; line-height: 1; }
         .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
         .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-        .box { border: 1px solid #66ff66; padding: 12px; border-radius: 8px; text-align: center; }
+        .box { border: 1px solid #66ff66; padding: 12px; border-radius: 8px; text-align: center; position: relative; }
+        .tab-iob { border-top: 5px solid #3498db; }
+        .tab-cob { border-top: 5px solid #2ecc71; }
+        .tab-req { border-top: 5px solid #e67e22; }
         .btn { border: 1.5px solid #66ff66; padding: 10px; border-radius: 8px; text-align: center; color: #66ff66; font-weight: bold; cursor: pointer; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
         <div class="header-row">
             <div class="glucose-box"><span class="glucose-val">${getState(this._config.entity)}</span> ${unit}</div>
-            <div class="status-area">● Steady →</div>
+            <div class="status-area">● Steady <span class="arrow">→</span></div>
         </div>
         <div class="grid-triple">
-           <div class="box">IOB<br><b>${getState(this._config.iob_entity)} U</b></div>
-           <div class="box">COB<br><b>${getState(this._config.cob_entity)} g</b></div>
-           <div class="box">REQ<br><b>${getState(this._config.req_entity)}</b></div>
+           <div class="box tab-iob">IOB<br><b>${getState(this._config.iob_entity)} U</b></div>
+           <div class="box tab-cob">COB<br><b>${getState(this._config.cob_entity)} g</b></div>
+           <div class="box tab-req">REQ<br><b>${getState(this._config.req_entity)}</b></div>
         </div>
         <div class="grid-double">
-           <div class="box">A1C<br><b style="font-size:1.5rem">${a1cEstimate}%</b></div>
+           <div class="box">EST. A1C<br><b style="font-size:1.5rem">${a1cEstimate}%</b></div>
            <div class="box">SENSOR DAYS<br><b>${getState(this._config.days_entity)}</b></div>
         </div>
         <div class="grid-double">
@@ -94,13 +100,22 @@ class T1DDiabetesCard extends HTMLElement {
   }
 }
 
-// ── Configuration Editor ──────────────────────────────────
+// ── Configuration Editor Class Definition ──────────────────────────────────
 class T1DDiabetesCardEditor extends HTMLElement {
-  constructor() { super(); this.attachShadow({ mode: 'open' }); }
-  setConfig(config) { this._config = config; }
-  set hass(hass) { this._hass = hass; this._render(); }
+  constructor() { 
+    super(); 
+    this.attachShadow({ mode: 'open' }); 
+  }
+  setConfig(config) { 
+    this._config = config; 
+  }
+  set hass(hass) { 
+    this._hass = hass; 
+    this._render(); 
+  }
   _render() {
     if (!this._hass || !this._config || this.shadowRoot.querySelector('ha-form')) return;
+    
     const schema = [
       { name: "title", label: "Card Title", selector: { text: {} } },
       { name: "unit_type", label: "Units", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
@@ -114,18 +129,33 @@ class T1DDiabetesCardEditor extends HTMLElement {
       { name: "alexa_name_2", label: "Name for Alexa Button 2", selector: { text: {} } },
       { name: "alexa_2", label: "Alexa Script 2", selector: { entity: { domain: "script" } } }
     ];
+    
     const form = document.createElement("ha-form");
-    form.hass = this._hass; form.schema = schema; form.data = this._config; form.computeLabel = (s) => s.label;
+    form.hass = this._hass; 
+    form.schema = schema; 
+    form.data = this._config; 
+    form.computeLabel = (s) => s.label;
+    
     form.addEventListener("value-changed", (ev) => {
       this._config = ev.detail.value;
-      this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
+      this.dispatchEvent(new CustomEvent("config-changed", { 
+        detail: { config: this._config }, 
+        bubbles: true, 
+        composed: true 
+      }));
     });
     this.shadowRoot.appendChild(form);
   }
 }
 
+// ── Registration ──────────────────────────────────
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.1', preview: true, description: 'Full T1D management card V1.4.1' });
+window.customCards.push({ 
+  type: 't1d-diabetes-card', 
+  name: 'T1DDiabetesCard v1.4.2', 
+  preview: true, 
+  description: 'Full T1D management card V1.4.2' 
+});
