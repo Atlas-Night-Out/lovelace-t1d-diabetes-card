@@ -1,5 +1,5 @@
 // ==========================================
-// PART 1: THE MAIN DISPLAY CARD
+// PART 1: THE DISPLAY CARD
 // ==========================================
 class T1DDiabetesCard extends HTMLElement {
   constructor() {
@@ -9,21 +9,18 @@ class T1DDiabetesCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      title: "Blood Glucose",
+      title: "Dexcom G6",
       entity: "",
       days_left_entity: "",
       iob_entity: "",
       cob_entity: "",
       req_entity: "",
+      a1c_entity: "",
       alexa_entity: "",
-      high_threshold: 10.0,
-      low_threshold: 3.9,
       show_title: true,
-      show_days_left: true
     };
   }
 
-  // Tells Home Assistant where to find the Visual Editor code block
   static getConfigElement() {
     return document.createElement("t1d-diabetes-card-editor");
   }
@@ -42,19 +39,34 @@ class T1DDiabetesCard extends HTMLElement {
     const iobEntity = hass.states[this._config.iob_entity];
     const cobEntity = hass.states[this._config.cob_entity];
     const reqEntity = hass.states[this._config.req_entity];
+    const a1cEntity = hass.states[this._config.a1c_entity];
 
     if (!bgEntity) return;
 
-    // Preserves your full sensor countdown string verbatim (e.g. "3 days, 7 hours...")
+    // Extracting Trend Arrows natively from attributes
+    const direction = bgEntity.attributes.direction || bgEntity.attributes.trend || '';
+    const arrowMap = {
+      'Flat': '→', 'Stable': '→', '→': '→',
+      'FortyFiveUp': '↗', '↗': '↗',
+      'SingleUp': '↑', '↑': '↑',
+      'DoubleUp': '⇈', '⇈': '⇈',
+      'FortyFiveDown': '↘', '↘': '↘',
+      'SingleDown': '↓', '↓': '↓',
+      'DoubleDown': '⇊', '⇊': '⇊'
+    };
+    const trendArrow = arrowMap[direction] || '';
+
+    // Safeguard values against undefined selections
     const countdownText = daysEntity ? daysEntity.state : 'N/A';
     const iobValue = iobEntity ? `${iobEntity.state} ${iobEntity.attributes.unit_of_measurement || 'U'}` : '0.0 U';
     const cobValue = cobEntity ? `${cobEntity.state} ${cobEntity.attributes.unit_of_measurement || 'g'}` : '0 g';
     const reqValue = reqEntity ? `${reqEntity.state} ${reqEntity.attributes.unit_of_measurement || 'g'}` : '0 g';
+    const a1cValue = a1cEntity ? `${a1cEntity.state}%` : null;
 
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          --card-bg: rgba(28, 28, 30, 0.9);
+          --card-bg: rgba(28, 28, 30, 0.95);
           --text-color: #ffffff;
         }
         .card {
@@ -62,51 +74,67 @@ class T1DDiabetesCard extends HTMLElement {
           color: var(--text-color);
           padding: 16px;
           border-radius: 12px;
-          font-family: sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
         }
         .main-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        .left-panel {
+        .bg-container {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
+        }
+        .bg-value {
+          font-size: 2.6rem;
+          font-weight: bold;
+          letter-spacing: -1px;
+        }
+        .trend-arrow {
+          font-size: 2rem;
+          color: #a0a0a5;
         }
         .right-panel {
           text-align: right;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           color: #a0a0a5;
+          line-height: 1.3;
         }
         .countdown-text {
           font-weight: bold;
           color: #ffffff;
         }
+        .meta-line {
+          font-size: 0.85rem;
+          color: #a0a0a5;
+          margin-top: -6px;
+        }
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-          margin-top: 4px;
+          gap: 10px;
         }
         .stat-box {
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 8px;
-          border-radius: 6px;
+          padding: 10px 6px;
+          border-radius: 8px;
           text-align: center;
-          font-size: 0.85rem;
         }
         .stat-label {
           font-size: 0.65rem;
           color: #a0a0a5;
           text-transform: uppercase;
-          margin-bottom: 2px;
+          font-weight: 600;
+          margin-bottom: 4px;
+          letter-spacing: 0.5px;
         }
         .stat-val {
+          font-size: 0.95rem;
           font-weight: bold;
           color: #4cd964;
         }
@@ -115,32 +143,35 @@ class T1DDiabetesCard extends HTMLElement {
           color: white;
           border: none;
           padding: 10px;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           font-weight: bold;
           font-size: 0.85rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          margin-top: 4px;
-          transition: background 0.2s;
+          gap: 8px;
+          transition: background 0.2s, transform 0.1s;
         }
-        .alexa-btn:hover {
-          background: #0082b3;
-        }
+        .alexa-btn:hover { background: #0082b3; }
+        .alexa-btn:active { transform: scale(0.98); }
       </style>
 
       <div class="card">
-        ${this._config.show_title ? `<h3>${this._config.title || 'Diabetes Tracker'}</h3>` : ''}
+        ${this._config.show_title ? `<h3 style="margin: 0; font-size: 1.1rem; color: #a0a0a5;">${this._config.title || 'Diabetes Tracker'}</h3>` : ''}
+        
         <div class="main-row">
-          <div class="left-panel">
-            <div class="bg-value" style="font-size: 2.2rem; font-weight: bold;">${bgEntity.state}</div>
+          <div class="bg-container">
+            <div class="bg-value">${bgEntity.state}</div>
+            ${trendArrow ? `<div class="trend-arrow">${trendArrow}</div>` : ''}
           </div>
           <div class="right-panel">
-            ${this._config.show_days_left ? `<div>Sensor Expires in:<br><span class="countdown-text">${countdownText}</span></div>` : ''}
+            <div>Sensor Expires in:</div>
+            <div class="countdown-text">${countdownText}</div>
           </div>
         </div>
+
+        ${a1cValue ? `<div class="meta-line">Estimated A1c: <span style="color:#fff; font-weight:bold;">${a1cValue}</span></div>` : ''}
 
         <div class="stats-grid">
           <div class="stat-box">
@@ -167,18 +198,25 @@ class T1DDiabetesCard extends HTMLElement {
 
     const btn = this.shadowRoot.getElementById('alexa-trigger');
     if (btn) {
-      btn.addEventListener('click', () => this._triggerAlexaReadout());
+      btn.onclick = () => this._triggerAlexaReadout();
     }
   }
 
   _triggerAlexaReadout() {
-    const bg = this._hass.states[this._config.entity]?.state || 'unknown';
-    const iob = this._hass.states[this._config.iob_entity]?.state || '0';
-    
-    this._hass.callService('tts', 'google_translate_say', {
-      entity_id: this._config.alexa_entity,
-      message: `Attention. Current blood glucose is ${bg}. Insulin on board is ${iob} units.`
-    });
+    const target = this._config.alexa_entity;
+    if (!target) return;
+
+    if (target.startsWith('script.')) {
+      // Safely calls your native custom script sequence
+      const scriptName = target.split('.')[1];
+      this._hass.callService('script', scriptName);
+    } else {
+      const bg = this._hass.states[this._config.entity]?.state || 'unknown';
+      this._hass.callService('tts', 'google_translate_say', {
+        entity_id: target,
+        message: `Your current blood glucose reading is ${bg}.`
+      });
+    }
   }
 }
 
@@ -186,8 +224,7 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 
 
 // ==========================================
-// PART 2: THE VISUAL CODE EDITOR LAYOUT 
-// (This creates the dropdown menu fields in the UI)
+// PART 2: THE VISUAL CODE EDITOR (SEARCHABLE!)
 // ==========================================
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
@@ -207,31 +244,24 @@ class T1DDiabetesCardEditor extends HTMLElement {
   _render() {
     if (!this._hass || !this._config) return;
 
-    // Filter down Home Assistant entities to populate our selection dropdowns
     const allEntities = Object.keys(this._hass.states);
     const sensors = allEntities.filter(e => e.startsWith('sensor.'));
-    const mediaPlayers = allEntities.filter(e => e.startsWith('media_player.'));
+    const listenables = allEntities.filter(e => e.startsWith('media_player.') || e.startsWith('script.'));
 
     this.shadowRoot.innerHTML = `
       <style>
-        .form-row {
-          margin-bottom: 14px;
-          display: flex;
-          flex-direction: column;
-          font-family: sans-serif;
-        }
-        label {
-          font-weight: bold;
-          margin-bottom: 4px;
+        .form { font-family: sans-serif; display: flex; flex-direction: column; gap: 12px; }
+        .form-row { display: flex; flex-direction: column; gap: 4px; }
+        label { font-weight: bold; font-size: 0.85rem; color: var(--secondary-text-color, #e0e0e0); }
+        input {
+          padding: 10px;
+          border-radius: 6px;
+          border: 1px solid rgba(255,255,255,0.2);
+          background: var(--card-background-color, #2c2c2e);
+          color: var(--primary-text-color, #fff);
           font-size: 0.9rem;
         }
-        select, input {
-          padding: 8px;
-          border-radius: 4px;
-          border: 1px solid #ccc;
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color, #000);
-        }
+        input:focus { border-color: #00a0e0; outline: none; }
       </style>
 
       <div class="form">
@@ -240,59 +270,54 @@ class T1DDiabetesCardEditor extends HTMLElement {
           <input type="text" id="title" value="${this._config.title || ''}">
         </div>
 
+        <!-- HTML5 Datalists inject immediate fuzzy-search capabilities into input bars -->
+        <datalist id="sensor-options">
+          ${sensors.map(e => `<option value="${e}"></option>`).join('')}
+        </datalist>
+
+        <datalist id="alexa-options">
+          ${listenables.map(e => `<option value="${e}"></option>`).join('')}
+        </datalist>
+
         <div class="form-row">
           <label>Blood Glucose Sensor (Required)</label>
-          <select id="entity">
-            <option value="">Select an entity</option>
-            ${sensors.map(e => `<option value="${e}" ${this._config.entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-          </select>
+          <input type="text" id="entity" list="sensor-options" value="${this._config.entity || ''}">
         </div>
 
         <div class="form-row">
           <label>Sensor Expiry/Countdown Sensor</label>
-          <select id="days_left_entity">
-            <option value="">None</option>
-            ${sensors.map(e => `<option value="${e}" ${this._config.days_left_entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-          </select>
+          <input type="text" id="days_left_entity" list="sensor-options" value="${this._config.days_left_entity || ''}">
         </div>
 
         <div class="form-row">
           <label>Insulin On Board (IOB) Sensor</label>
-          <select id="iob_entity">
-            <option value="">None</option>
-            ${sensors.map(e => `<option value="${e}" ${this._config.iob_entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-          </select>
+          <input type="text" id="iob_entity" list="sensor-options" value="${this._config.iob_entity || ''}">
         </div>
 
         <div class="form-row">
           <label>Carbs On Board (COB) Sensor</label>
-          <select id="cob_entity">
-            <option value="">None</option>
-            ${sensors.map(e => `<option value="${e}" ${this._config.cob_entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-          </select>
+          <input type="text" id="cob_entity" list="sensor-options" value="${this._config.cob_entity || ''}">
         </div>
 
         <div class="form-row">
           <label>Carbs Required (REQ) Sensor</label>
-          <select id="req_entity">
-            <option value="">None</option>
-            ${sensors.map(e => `<option value="${e}" ${this._config.req_entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-          </select>
+          <input type="text" id="req_entity" list="sensor-options" value="${this._config.req_entity || ''}">
         </div>
 
         <div class="form-row">
-          <label>Alexa Media Player Target</label>
-          <select id="alexa_entity">
-            <option value="">None</option>
-            ${mediaPlayers.map(e => `<option value="${e}" ${this._config.alexa_entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-          </select>
+          <label>Estimated A1c Sensor (Optional)</label>
+          <input type="text" id="a1c_entity" list="sensor-options" value="${this._config.a1c_entity || ''}">
+        </div>
+
+        <div class="form-row">
+          <label>Alexa Target (Supports media_player or script.alexa_type_one_dave)</label>
+          <input type="text" id="alexa_entity" list="alexa-options" value="${this._config.alexa_entity || ''}">
         </div>
       </div>
     `;
 
-    // Add UI change listeners to automatically update config settings when dropdowns change
-    this.shadowRoot.querySelectorAll('select, input').forEach(element => {
-      element.addEventListener('change', (ev) => this._valueChanged(ev));
+    this.shadowRoot.querySelectorAll('input').forEach(el => {
+      el.addEventListener('input', (ev) => this._valueChanged(ev));
     });
   }
 
@@ -305,19 +330,16 @@ class T1DDiabetesCardEditor extends HTMLElement {
       [target.id]: target.value
     };
 
-    // Dispatches configuration changes back up to the Home Assistant dashboard engine
-    const event = new CustomEvent("config-changed", {
+    this.dispatchEvent(new CustomEvent("config-changed", {
       detail: { config: newConfig },
       bubbles: true,
       composed: true,
-    });
-    this.dispatchEvent(event);
+    }));
   }
 }
 
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
-// Connects our custom card to Home Assistant's card list registration database
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "t1d-diabetes-card",
