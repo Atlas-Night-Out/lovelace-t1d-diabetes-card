@@ -1,36 +1,36 @@
 /**
  * ====================================================================
- * TYPE 1 DIABETES (T1D) MONITORING & MANAGEMENT UI CARD
+ * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      1.61 Release Build
+ * @version      1.62 - Full Enterprise Production Build
+ * @release      Definitive Edition
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
- * Continuous Glucose Monitor (CGM) analytics. Featuring 
- * adaptive unit threshold color maps, automated A1C tracking,
- * isolated layouts, and dedicated hardware/script controls.
- * @compatibility Home Assistant Lovelace Frontend core architecture.
- * Big thank you to ResinChem for is help and support to make this ever possible! 
+ *               Continuous Glucose Monitor (CGM) analytics. Featuring 
+ *               xDrip-styled sanitized trend translations, modularized 
+ *               CSS sub-rendering, and adaptive unit map safety grids.
+ *               Big thank you to ResinChem for is help and support to make this ever possible!
  * ====================================================================
  */
 
 /**
- * Main Card UI Component
- * Renders the primary user interface containing the glucose status circle,
- * directional trend vectors, metabolic metric matrix, and automation triggers.
+ * Main T1D Dashboard UI Card Component Architectural Core
  */
 class T1DDiabetesCard extends HTMLElement {
   
   /**
-   * Initializes internal component state and attaches the component shadow DOM.
+   * Initializes the component lifecycle instance, instantiates state structures,
+   * and attaches an isolated secure Shadow DOM container.
    */
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
     this._config = null;
     this._hass = null;
+    console.log("%c [T1D Card] Core System Engine Initialized successfully.", "color: #00bb00; font-weight: bold;");
   }
 
   /**
-   * Registers the accompanying visual configuration form editor to Lovelace.
+   * Registers the accompanying visual configuration form editor component.
    * @returns {HTMLElement} Custom HTML Element identifier for card configurations.
    */
   static getConfigElement() {
@@ -52,12 +52,12 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Sets up the baseline internal JSON configuration defined by Lovelace.
-   * Runs syntax checking and updates internal tracking handles.
+   * Runs syntax validation checks and updates internal tracking handles.
    * @param {Object} config The direct configuration schema from the yaml/visual editor.
    */
   setConfig(config) {
     if (!config) {
-      throw new Error("Invalid T1D Card Configuration Schema Detected.");
+      throw new Error("Critical Error: Invalid T1D Card Configuration Schema Detected.");
     }
     this._config = config;
     if (this._hass) {
@@ -67,7 +67,7 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Home Assistant State Machine connection bridge hook.
-   * Listens directly to real-time state engine stream events over WebSocket.
+   * Listens directly to real-time state engine stream events over live WebSockets.
    * @param {Object} hass Direct state dictionary repository pointer.
    */
   set hass(hass) {
@@ -78,58 +78,62 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   /**
-   * Safe execution handler for triggering backend automation routines.
+   * Safe execution handler for triggering backend automation routines and scripts.
    * Evaluates targets to safely handle execution calls without crashing the UI thread.
    * @param {String} entity Direct script or automation reference ID string.
    * @private
    */
   _callService(entity) {
     if (!entity || !this._hass) {
+      console.warn("[T1D Card] Service execution blocked: Target entity or HASS instance is missing.");
       return;
     }
     
     const tokenParts = entity.split('.');
     if (tokenParts.length !== 2) {
-      console.error(`T1D Card Error: Target entity '${entity}' is format malformed.`);
+      console.error(`[T1D Card] Execution Aborted: Target '${entity}' format is malformed.`);
       return;
     }
     
     const domain = tokenParts[0];
     const service = tokenParts[1];
     
+    console.log(`[T1D Card] Firing remote script service call: ${domain}.${service}`);
     this._hass.callService(domain, service, {});
   }
 
   /**
-   * Normalizes structural string-based trend outputs from API systems (Dexcom, Nightscout, etc.)
-   * and maps them to clear, prominent visual directional arrow symbols.
+   * Sanitizes raw system trend strings into clean xDrip-styled text labels and precise arrows.
+   * Strips out database characters like underscores to ensure robust parsing.
    * @param {String} trend Raw state string from the configured tracking sensor.
-   * @returns {Object} Map container holding parsed target label details.
+   * @returns {Object} Map container holding parsed target label and arrow string details.
    * @private
    */
   _getTrendInfo(trend) {
     if (!trend) {
-      return { label: "→" };
+      return { label: "→", text: "Steady" };
     }
     
-    const lookupKey = trend.toString().toLowerCase().trim();
+    // Clean string by removing underscores and whitespace for cross-integration compatibility
+    const t = trend.toString().toLowerCase().replace(/_/g, '').replace(/\s/g, '').trim();
 
-    if (lookupKey.includes('doubleup')) {
-      return { label: '↑↑' };
-    } else if (lookupKey.includes('singleup') || lookupKey.includes('up')) {
-      return { label: '↑' };
-    } else if (lookupKey.includes('fortyfiveup')) {
-      return { label: '↗' };
-    } else if (lookupKey.includes('flat') || lookupKey.includes('steady')) {
-      return { label: '→' };
-    } else if (lookupKey.includes('fortyfivedown')) {
-      return { label: '↘' };
-    } else if (lookupKey.includes('singledown') || lookupKey.includes('down')) {
-      return { label: '↓' };
-    } else if (lookupKey.includes('doubledown')) {
-      return { label: '↓↓' };
+    if (t.includes('doubleup')) {
+      return { label: '↑↑', text: 'Rapid Up' };
+    } else if (t.includes('singleup') || t.includes('rapidup') || t === 'up') {
+      return { label: '↑', text: 'Going Up' };
+    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t === 'climbing') {
+      return { label: '↗', text: 'Slow Up' };
+    } else if (t.includes('flat') || t.includes('steady') || t === 'none') {
+      return { label: '→', text: 'Steady' };
+    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t === 'falling') {
+      return { label: '↘', text: 'Slow Down' };
+    } else if (t.includes('doubledown') || t.includes('rapiddown')) {
+      return { label: '↓↓', text: 'Rapid Down' };
+    } else if (t.includes('singledown') || t.includes('down')) {
+      return { label: '↓', text: 'Going Down' };
     } else {
-      return { label: '→' };
+      // Fallback pass-through for unmapped custom native values
+      return { label: '→', text: trend };
     }
   }
 
@@ -146,10 +150,10 @@ class T1DDiabetesCard extends HTMLElement {
       return "N/A";
     }
     
-    // Convert base numbers to absolute mg/dL baseline scale to properly match formula coefficients.
+    // Convert metric readings to standard mg/dL scale to align with math constants
     const mgDlValue = unit === "mmol/L" ? (glucose * 18.018) : glucose;
     
-    // Apply standard DCCT alignment translation equation
+    // Mathematical DCCT Alignment Formula Equation
     const calculatedPercentage = (mgDlValue + 46.7) / 28.7;
     return calculatedPercentage.toFixed(1);
   }
@@ -164,21 +168,21 @@ class T1DDiabetesCard extends HTMLElement {
    */
   _getGlucoseColor(glucoseVal, unit) {
     if (isNaN(glucoseVal) || glucoseVal <= 0) {
-      return "#00bb00"; // Safe green initialization fallback
+      return "#00bb00"; 
     }
     
     if (unit === "mmol/L") {
       if (glucoseVal < 4.0 || glucoseVal > 10.0) {
-        return "#e74c3c"; // Crimson Red: Hypo / Hyper Alert Window
+        return "#e74c3c"; // Crimson Red: Out of Bounds Alert Window
       } else if (glucoseVal > 7.8) {
-        return "#e67e22"; // Pumpkin Orange: High Postprandial Warning Bounds
+        return "#e67e22"; // Pumpkin Orange: Postprandial Elevation Warning
       }
-      return "#00bb00"; // Jade Green: Optimal Target Glycemia
+      return "#00bb00"; // Jade Green: Core Target Range
     } else {
       if (glucoseVal < 70 || glucoseVal > 180) {
         return "#e74c3c"; // Crimson Red Alert
       } else if (glucoseVal > 140) {
-        return "#e67e22"; // Pumpkin Orange Warning Bounds
+        return "#e67e22"; // Pumpkin Orange Warning
       }
       return "#00bb00"; // Jade Green Core
     }
@@ -196,51 +200,20 @@ class T1DDiabetesCard extends HTMLElement {
       return "#00bb00";
     }
     if (numericValue >= 6.5) {
-      return "#e74c3c"; // Elevated Risk Spectrum Border
+      return "#e74c3c"; // Diagnostic Diabetes Boundary
     } else if (numericValue >= 5.7) {
-      return "#e67e22"; // Elevated Pre-Diabetes Window Border
+      return "#e67e22"; // Pre-Diabetes Warning Span
     }
-    return "#00bb00"; // Normal Glycemic Span Green
+    return "#00bb00"; // Optimal Glycemic Span
   }
 
   /**
-   * Component DOM Rendering Lifecycle Implementation Core.
-   * Re-evaluates CSS grids, parses incoming data buffers, and rewrites the Shadow Root markup.
+   * Generates isolated Encapsulated Component CSS Styling Definitions.
+   * Locks layout metrics and structural box boundaries securely.
    * @private
    */
-  _render() {
-    if (!this._config || !this._hass) {
-      return;
-    }
-
-    /**
-     * Resolves Home Assistant states safely by validating tracking instances.
-     * Handles disconnected or non-initialized nodes seamlessly.
-     */
-    const fetchStateString = (entityId) => {
-      if (entityId && this._hass.states[entityId]) {
-        const stateObj = this._hass.states[entityId].state;
-        if (stateObj === "unknown" || stateObj === "unavailable") {
-          return "N/A";
-        }
-        return stateObj;
-      }
-      return "N/A";
-    };
-    
-    const activeRawReading = fetchStateString(this._config.entity);
-    const parsedGlucoseFloat = parseFloat(activeRawReading);
-    const rawTrendString = fetchStateString(this._config.trend_entity);
-    
-    const trendMetaData = this._getTrendInfo(rawTrendString);
-    const selectedUnitLabel = this._config.unit_type || "mmol/L";
-    const computedA1cValue = this._calculateA1c(parsedGlucoseFloat, selectedUnitLabel);
-    
-    const analyticalGlucoseColor = this._getGlucoseColor(parsedGlucoseFloat, selectedUnitLabel);
-    const analyticalA1cColor = this._getA1cColor(computedA1cValue);
-
-    // Write UI View Structure with isolated strict styling definitions
-    this.shadowRoot.innerHTML = `
+  _getStyles(glucoseColor, a1cColor) {
+    return `
       <style>
         ha-card { 
           background: rgba(0, 25, 10, 0.4); 
@@ -248,7 +221,7 @@ class T1DDiabetesCard extends HTMLElement {
           border-radius: 16px; 
           padding: 20px; 
           color: #ffffff; 
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
           box-sizing: border-box;
         }
         .card-title {
@@ -268,7 +241,7 @@ class T1DDiabetesCard extends HTMLElement {
           width: 120px;
           height: 120px;
           border-radius: 50%;
-          border: 5px solid ${analyticalGlucoseColor};
+          border: 5px solid ${glucoseColor};
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -295,7 +268,6 @@ class T1DDiabetesCard extends HTMLElement {
           font-size: 1.2rem;
           color: #ffffff;
           margin-bottom: 4px;
-          text-transform: capitalize;
         }
         .grid-triple { 
           display: grid; 
@@ -320,7 +292,7 @@ class T1DDiabetesCard extends HTMLElement {
           box-sizing: border-box;
         }
         .a1c-box { 
-          border: 2px solid ${analyticalA1cColor}; 
+          border: 2px solid ${a1cColor}; 
           transition: border-color 0.4s ease-in-out;
         }
         .box-h { 
@@ -358,53 +330,140 @@ class T1DDiabetesCard extends HTMLElement {
           transform: scale(0.98);
         }
       </style>
-      
+    `;
+  }
+
+  /**
+   * Generates the upper dashboard section template strings.
+   * Contains the primary circle container and layout vectors.
+   * @private
+   */
+  _renderHeader(value, unit, trendText, trendArrow) {
+    return `
+      <div class="header">
+          <div class="glucose-circle">
+              <div class="val">${value}</div>
+              <div class="unit-label">${unit}</div>
+          </div>
+          <div class="trend-container">
+              <div class="trend-text">${trendText}</div>
+              <div style="font-size: 3.8rem; line-height: 1;">${trendArrow}</div>
+          </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generates the triple item matrix metrics view block (IOB, COB, REQ).
+   * @private
+   */
+  _renderMatrixGrid(iob, cob, req) {
+    return `
+      <div class="grid-triple">
+         <div class="box">
+           <div class="box-h" style="color: #3498db;">IOB</div>
+           <div class="box-v">${iob} U</div>
+         </div>
+         <div class="box">
+           <div class="box-h" style="color: #2ecc71;">COB</div>
+           <div class="box-v">${cob} g</div>
+         </div>
+         <div class="box">
+           <div class="box-h" style="color: #e67e22;">REQ</div>
+           <div class="box-v">${req}</div>
+         </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generates the lower dual-column monitoring analytics layout blocks.
+   * Includes the dynamically styled HbA1c projections and lifecycle parameters.
+   * @private
+   */
+  _renderAnalyticsGrid(a1cValue, a1cColor, lifespan) {
+    return `
+      <div class="grid-double">
+         <div class="box a1c-box">
+           <div class="box-h" style="color: ${a1cColor}">EST. A1C</div>
+           <div class="box-v" style="color: ${a1cColor}">${a1cValue}%</div>
+         </div>
+         <div class="box">
+           <div class="box-h" style="color: #ffffff; opacity: 0.9;">SENSOR DAYS</div>
+           <div class="box-v" style="font-size: 1.1rem; line-height: 1.3; white-space: normal;">${lifespan}</div>
+         </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Component Execution Lifecycle Master Controller.
+   * Gathers live data, triggers sub-render architectures, and executes transactional updates.
+   * @private
+   */
+  _render() {
+    if (!this._config || !this._hass) {
+      return;
+    }
+
+    /**
+     * Extracts state strings safely while protecting against empty values or network offline windows.
+     */
+    const fetchStateString = (entityId) => {
+      if (entityId && this._hass.states[entityId]) {
+        const stateObj = this._hass.states[entityId].state;
+        if (stateObj === "unknown" || stateObj === "unavailable") {
+          return "N/A";
+        }
+        return stateObj;
+      }
+      return "N/A";
+    };
+    
+    // Resolve states from dataset repositories
+    const activeRawReading = fetchStateString(this._config.entity);
+    const parsedGlucoseFloat = parseFloat(activeRawReading);
+    const rawTrendString = fetchStateString(this._config.trend_entity);
+    
+    // Compute logical derivatives
+    const trendMetaData = this._getTrendInfo(rawTrendString);
+    const selectedUnitLabel = this._config.unit_type || "mmol/L";
+    const computedA1cValue = this._calculateA1c(parsedGlucoseFloat, selectedUnitLabel);
+    
+    // Map colors
+    const analyticalGlucoseColor = this._getGlucoseColor(parsedGlucoseFloat, selectedUnitLabel);
+    const analyticalA1cColor = this._getA1cColor(computedA1cValue);
+
+    // Assembly Pipeline Execution Sequence
+    let templateStyles = this._getStyles(analyticalGlucoseColor, analyticalA1cColor);
+    let templateHeader = this._renderHeader(activeRawReading, selectedUnitLabel, trendMetaData.text, trendMetaData.label);
+    
+    let templateMatrix = this._renderMatrixGrid(
+      fetchStateString(this._config.iob_entity),
+      fetchStateString(this._config.cob_entity),
+      fetchStateString(this._config.req_entity)
+    );
+    
+    let templateAnalytics = this._renderAnalyticsGrid(
+      computedA1cValue,
+      analyticalA1cColor,
+      fetchStateString(this._config.days_entity)
+    );
+
+    // Assemble final DOM content payload
+    this.shadowRoot.innerHTML = `
+      ${templateStyles}
       <ha-card>
         ${this._config.title ? `<div class="card-title">${this._config.title}</div>` : ''}
-        
-        <div class="header">
-            <div class="glucose-circle">
-                <div class="val">${activeRawReading}</div>
-                <div class="unit-label">${selectedUnitLabel}</div>
-            </div>
-            <div class="trend-container">
-                <div class="trend-text">${rawTrendString}</div>
-                <div style="font-size: 3.8rem; line-height: 1; transition: transform 0.3s ease;">${trendMetaData.label}</div>
-            </div>
-        </div>
-        
-        <div class="grid-triple">
-           <div class="box">
-             <div class="box-h" style="color: #3498db;">IOB</div>
-             <div class="box-v">${fetchStateString(this._config.iob_entity)} U</div>
-           </div>
-           <div class="box">
-             <div class="box-h" style="color: #2ecc71;">COB</div>
-             <div class="box-v">${fetchStateString(this._config.cob_entity)} g</div>
-           </div>
-           <div class="box">
-             <div class="box-h" style="color: #e67e22;">REQ</div>
-             <div class="box-v">${fetchStateString(this._config.req_entity)}</div>
-           </div>
-        </div>
-        
-        <div class="grid-double">
-           <div class="box a1c-box">
-             <div class="box-h" style="color: ${analyticalA1cColor}">EST. A1C</div>
-             <div class="box-v" style="color: ${analyticalA1cColor}">${computedA1cValue}%</div>
-           </div>
-           <div class="box">
-             <div class="box-h" style="color: #ffffff; opacity: 0.9;">SENSOR DAYS</div>
-             <div class="box-v" style="font-size: 1.1rem; line-height: 1.3; white-space: normal;">${fetchStateString(this._config.days_entity)}</div>
-           </div>
-        </div>
-        
+        ${templateHeader}
+        ${templateMatrix}
+        ${templateAnalytics}
         <div class="btn" id="triggerActionOne">${this._config.alexa_name_1 || "LivingRoom Readout"}</div>
         <div class="btn" id="triggerActionTwo">${this._config.alexa_name_2 || "BedRoom Readout"}</div>
       </ha-card>
     `;
 
-    // Connect standard click event listeners to execute integration scripts
+    // Add persistent structural target connection click listeners
     this.shadowRoot.querySelector('#triggerActionOne').addEventListener('click', () => {
       this._callService(this._config.alexa_1);
     });
@@ -416,14 +475,13 @@ class T1DDiabetesCard extends HTMLElement {
 }
 
 /**
- * Visual Form Editor Component
- * Generates automated configuration forms within the UI, eliminating 
- * manual YAML configuration overhead.
+ * Visual Form Editor Architectural Component
+ * Builds forms visually inside the Home Assistant panel layout workspace.
  */
 class T1DDiabetesCardEditor extends HTMLElement {
   
   /**
-   * Instantiates the editor module workspace.
+   * Allocates space and configures core baseline initialization variables.
    */
   constructor() {
     super();
@@ -433,16 +491,16 @@ class T1DDiabetesCardEditor extends HTMLElement {
   }
 
   /**
-   * Inherits configuration states directly from parent context boundaries.
-   * @param {Object} config UI target reference block.
+   * Connects incoming card parameters across the visual panel editor boundary framework.
+   * @param {Object} config Targeted parameters map schema.
    */
   setConfig(config) {
     this._config = config;
   }
 
   /**
-   * Tracks entity structural data changes on Home Assistant environments.
-   * @param {Object} hass State machine pointer mapping.
+   * Monitors modifications made inside configuration environments.
+   * @param {Object} hass Core application state data engine reference tracker.
    */
   set hass(hass) {
     this._hass = hass;
@@ -450,7 +508,8 @@ class T1DDiabetesCardEditor extends HTMLElement {
   }
 
   /**
-   * Form Generator Engine Lifecycle. Builds the standard interactive Lovelace schema map.
+   * Visual Configuration UI Form Rendering Loop.
+   * Formulates full structural option dropdown menus and entities lookups.
    * @private
    */
   _render() {
@@ -458,7 +517,7 @@ class T1DDiabetesCardEditor extends HTMLElement {
       return;
     }
     
-    // Explicit Form Field Generation Schema Map
+    // UI Form Structure Definition Map Schema
     const structuralSchema = [
       {
         name: "title",
@@ -527,7 +586,7 @@ class T1DDiabetesCardEditor extends HTMLElement {
     formElement.schema = structuralSchema;
     formElement.data = this._config;
     
-    // Wire change listeners to dynamically update the view on changes
+    // Dispatches parameter updates cleanly back to dashboard UI nodes on edits
     formElement.addEventListener("value-changed", (eventHook) => {
       this._config = eventHook.detail.value;
       
@@ -540,16 +599,15 @@ class T1DDiabetesCardEditor extends HTMLElement {
       this.dispatchEvent(configChangeEvent);
     });
     
-    // Append structured layout nodes directly to the editor workspace
     this.shadowRoot.appendChild(formElement);
   }
 }
 
-// Global Core Custom Element Registration Engine Sequences
+// Register components globally into standard Lovelace execution routines
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
-// Register configuration descriptor metrics to the custom cards list instance array
+// Mount schema metadata to custom configuration registry tables
 window.customCards = window.customCards || [];
 window.customCards.push({ 
   type: 't1d-diabetes-card', 
