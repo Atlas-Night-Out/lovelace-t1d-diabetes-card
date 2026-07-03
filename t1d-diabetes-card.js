@@ -65,6 +65,7 @@ class T1DDiabetesCard extends HTMLElement {
         .btn { border: 1px solid rgba(0, 187, 0, 0.2); padding: 6px; border-radius: 6px; text-align: center; color: #66ff66; font-weight: 500; cursor: pointer; font-size: 0.85rem; }
         .graph-box { margin-top: 10px; height: 100px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
       </style>
+	  /** **/
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
         <div class="header-row">
@@ -128,3 +129,4 @@ customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 window.customCards = window.customCards || [];
 window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.7', preview: true, description: 'Stable T1D management card' });
+
