@@ -39,8 +39,13 @@ There you will find the entry HACS automatically generated, pointing directly to
 
 ### 🎥 Video Walkthrough: HACS Installation & Resource Verification
 
+<details>
+<summary>🔍 Click here to expand the Full Video Setup Walkthrough</summary>
+
+### 🎥 Detailed Walkthrough
 https://github.com/user-attachments/assets/c69f8ba3-1758-447d-bea4-d7a1c3aa6d02
 
+</details>
 
 ---
 
