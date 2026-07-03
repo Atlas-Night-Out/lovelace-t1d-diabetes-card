@@ -37,6 +37,7 @@ You do **not** need to manually add resources. If you ever want to verify that H
 There you will find the entry HACS automatically generated, pointing directly to your frontend path:
 `/hacsfiles/lovelace-t1d-diabetes-card/t1d-diabetes-card.js`
 
+
 ### 🎥 Video Walkthrough: HACS Installation & Resource Verification
 
 <details>
