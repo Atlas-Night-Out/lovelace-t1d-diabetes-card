@@ -16,7 +16,7 @@ A custom Home Assistant card for T1D management. Featuring a sleek, custom-style
 
 ## Prerequisites
 
-> ⚠️ **Important System Requirement:** To populate the advanced tracking blocks (**IOB**, **COB**, and **REQ**), this setup requires an active **AAPS (Android Artificial Pancreas System)** or a similar looping data stream integrated into your Home Assistant instance. 
+> ⚠️ **Important System Requirement:** To populate the advanced tracking blocks (**IOB**, **COB**, and **REQ**), this setup requires an active **AAPS (Android Artificial Pancreas System)** or a similar looping data stream integrated into your Home Assistant instance. For detailed setup guides, refer to the official [AndroidAPS Documentation](https://androidaps.readthedocs.io/en/latest/).
 
 ---
 
@@ -45,4 +45,4 @@ This card is 100% manageable via the native Home Assistant visual UI editor:
 * **Dual Alexa Voice Announcements:** Two dedicated, fully customizable interactive action buttons designed to instantly trigger your existing Home Assistant Alexa room announcement scripts for quick audio readouts.
 
 ---
-*Maintained with ❤️ for the T1D community. Version 1.63.*
+*Maintained with 💙 for the T1D community. Version 1.63.*
