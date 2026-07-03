@@ -10,8 +10,10 @@ A custom Home Assistant card for T1D management. Featuring a sleek, custom-style
 - **Custom Aesthetic:** Designed with a "shady green" border and theme-matching dark mode.
 
 ## Screenshot
-![T1DDiabetesCard](<img width="2540" height="1174" alt="image" src="https://github.com/user-attachments/assets/9f559798-6c8b-4b39-8c52-fe68dd50e85b" />
-)
+
+<img width="279" height="440" alt="2026-07-03_20-21-14" src="https://github.com/user-attachments/assets/42729739-c015-4cac-83be-13faf87f3b67" />
+
+
 *(Replace the path above with the actual link to your uploaded screenshot)*
 
 ## Installation
