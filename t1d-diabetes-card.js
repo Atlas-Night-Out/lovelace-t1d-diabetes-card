@@ -1,7 +1,9 @@
-/** T1D Diabetes Card - V1.5.4 - Full Structure **/
+/** * T1D Diabetes Card - Full Professional Version
+ * This card displays glucose levels, trend arrows, IOB/COB/REQ data,
+ * and allows for Alexa script execution.
+ */
 
 class T1DDiabetesCard extends HTMLElement {
-
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -27,13 +29,16 @@ class T1DDiabetesCard extends HTMLElement {
     this._hass.callService(domain, service, {});
   }
 
-  _getArrow(trend) {
-    const t = (trend || "").toLowerCase();
-    if (t.includes('flat') || t.includes('stable')) return '→';
-    if (t.includes('rising') || t.includes('up')) return '↑';
-    if (t.includes('falling') || t.includes('down')) return '↓';
-    if (t.includes('rapidly') || t.includes('double')) return '↑↑';
-    return '•';
+  /* Logic to map trend text to visual rotation */
+  _getTrendInfo(trend) {
+    if (!trend) return { deg: 90, label: "→" };
+    const t = trend.toString().toLowerCase();
+    if (t.includes('double') && t.includes('up')) return { deg: 0, label: '↑↑' };
+    if (t.includes('single') && t.includes('up')) return { deg: 45, label: '↑' };
+    if (t.includes('flat') || t.includes('steady')) return { deg: 90, label: '→' };
+    if (t.includes('single') && t.includes('down')) return { deg: 135, label: '↓' };
+    if (t.includes('double') && t.includes('down')) return { deg: 180, label: '↓↓' };
+    return { deg: 90, label: '→' };
   }
 
   _render() {
@@ -42,55 +47,43 @@ class T1DDiabetesCard extends HTMLElement {
     const getState = (e) => (e && this._hass.states[e]) ? this._hass.states[e].state : "N/A";
     const val = parseFloat(getState(this._config.entity));
     const trend = getState(this._config.trend_entity);
+    const trendInfo = this._getTrendInfo(trend);
     const unit = this._config.unit_type || "mmol/L";
-    const arrow = this._getArrow(trend);
-    const perc = Math.min(val / 15, 1);
-    const offset = 220 - (220 * perc);
-
+    
     let a1c = !isNaN(val) ? (unit === "mmol/L" ? (((val * 18.018) + 46.7) / 28.7).toFixed(1) : ((val + 46.7) / 28.7).toFixed(1)) : "N/A";
 
     this.shadowRoot.innerHTML = `
       <style>
-        ha-card { background: rgba(0, 187, 0, 0.06) !important; border: 1.5px solid rgba(0, 187, 0, 0.3) !important; border-radius: 12px !important; padding: 12px !important; color: white; }
-        .title { font-size: 1rem; font-weight: 500; margin-bottom: 10px; opacity: 0.9; }
-        .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .circle-container { position: relative; width: 90px; height: 90px; }
-        .circle-svg { transform: rotate(-90deg); }
-        .circle-bg { fill: none; stroke: #333; stroke-width: 8; }
-        .circle-val { fill: none; stroke: rgba(0, 187, 0, 0.8); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 220; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 1s ease; }
-        .glucose-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; }
-        .glucose-num { font-size: 1.8rem; font-weight: bold; line-height: 1; }
-        .arrow-area { text-align: center; padding-right: 15px; }
-        .arrow { font-size: 2.5rem; line-height: 1; display: block; margin-top: 5px; }
-        .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
-        .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-        .box { border: 1px solid rgba(0, 187, 0, 0.2); padding: 8px; border-radius: 6px; text-align: center; }
-        .box-val { font-size: 1.15rem; font-weight: bold; }
-        .box-label { font-size: 0.7rem; font-weight: bold; }
-        .btn { border: 1px solid rgba(0, 187, 0, 0.3); padding: 6px; border-radius: 6px; text-align: center; cursor: pointer; font-size: 0.85rem; margin-top: 5px; }
+        ha-card { background: rgba(0, 0, 0, 0.2); border: 1.5px solid rgba(0, 187, 0, 0.3); border-radius: 12px; padding: 12px; color: white; font-family: sans-serif; }
+        .title { font-size: 1.1rem; margin-bottom: 12px; font-weight: bold; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .glucose-num { font-size: 2.2rem; font-weight: bold; }
+        .trend-area { text-align: center; font-size: 1rem; margin-right: 10px; }
+        .arrow-icon { display: inline-block; font-size: 2.5rem; transform: rotate(${trendInfo.deg}deg); margin-top: 5px; }
+        .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+        .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .box { border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px; border-radius: 6px; text-align: center; }
+        .box-header { font-weight: bold; font-size: 0.75rem; margin-bottom: 4px; }
+        .box-value { font-weight: bold; font-size: 1rem; }
+        .btn { border: 1px solid rgba(0, 187, 0, 0.5); padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; color: #00bb00; margin-top: 5px; }
       </style>
       <ha-card>
-        <div class="title">${this._config.title || "TDave Glucose"}</div>
+        <div class="title">${this._config.title || "T1Dave Glucose"}</div>
         <div class="header-row">
-            <div class="circle-container">
-                <svg class="circle-svg" viewBox="0 0 80 80"><circle class="circle-bg" cx="40" cy="40" r="35"/><circle class="circle-val" cx="40" cy="40" r="35"/></svg>
-                <div class="glucose-text"><div class="glucose-num">${getState(this._config.entity)}</div><div style="font-size:0.7rem">${unit}</div></div>
-            </div>
-            <div class="arrow-area">${trend}<br><span class="arrow">${arrow}</span></div>
+            <div><div class="glucose-num">${getState(this._config.entity)}</div><div>${unit}</div></div>
+            <div class="trend-area"><div>${trend}</div><div class="arrow-icon">${trendInfo.label}</div></div>
         </div>
         <div class="grid-triple">
-           <div class="box"><div class="box-label" style="color: #3498db;">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
-           <div class="box"><div class="box-label" style="color: #2ecc71;">COB</div><div class="box-val">${getState(this._config.cob_entity)} g</div></div>
-           <div class="box"><div class="box-label" style="color: #e67e22;">REQ</div><div class="box-val">${getState(this._config.req_entity)} g</div></div>
+           <div class="box"><div class="box-header" style="color: #3498db;">IOB</div><div class="box-value">${getState(this._config.iob_entity)} U</div></div>
+           <div class="box"><div class="box-header" style="color: #2ecc71;">COB</div><div class="box-value">${getState(this._config.cob_entity)} g</div></div>
+           <div class="box"><div class="box-header" style="color: #e67e22;">REQ</div><div class="box-value">${getState(this._config.req_entity)}</div></div>
         </div>
         <div class="grid-double">
-           <div class="box"><div class="box-label">EST. A1C</div><div class="box-val">${a1c}%</div></div>
-           <div class="box"><div class="box-label">SENSOR DAYS</div><div class="box-val">${getState(this._config.days_entity)}</div></div>
+           <div class="box"><div class="box-header">EST. A1C</div><div class="box-value">${a1c}%</div></div>
+           <div class="box"><div class="box-header">SENSOR DAYS</div><div class="box-value">${getState(this._config.days_entity)}</div></div>
         </div>
-        <div class="grid-double">
-           <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
-           <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa 2"}</div>
-        </div>
+        <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
+        <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa 2"}</div>
       </ha-card>
     `;
 
@@ -106,14 +99,14 @@ class T1DDiabetesCardEditor extends HTMLElement {
   _render() {
     if (!this._hass || !this._config || this.shadowRoot.querySelector('ha-form')) return;
     const schema = [
-      { name: "title", label: "Card Title", selector: { text: {} } },
+      { name: "title", label: "Title", selector: { text: {} } },
       { name: "unit_type", label: "Units", selector: { select: { options: ["mg/dL", "mmol/L"] } } },
-      { name: "entity", label: "Blood Glucose Sensor", selector: { entity: { domain: "sensor" } } },
+      { name: "entity", label: "Glucose Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "trend_entity", label: "Trend Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "iob_entity", label: "IOB Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "cob_entity", label: "COB Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "req_entity", label: "REQ Sensor", selector: { entity: { domain: "sensor" } } },
-      { name: "days_entity", label: "Sensor Days", selector: { entity: { domain: "sensor" } } },
+      { name: "days_entity", label: "Days Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "alexa_name_1", label: "Alexa 1 Name", selector: { text: {} } },
       { name: "alexa_1", label: "Alexa 1 Script", selector: { entity: { domain: "script" } } },
       { name: "alexa_name_2", label: "Alexa 2 Name", selector: { text: {} } },
@@ -128,7 +121,14 @@ class T1DDiabetesCardEditor extends HTMLElement {
     this.shadowRoot.appendChild(form);
   }
 }
+
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
+
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard', preview: true, description: 'Stable T1D management card' });
+window.customCards.push({ 
+  type: 't1d-diabetes-card', 
+  name: 'T1DDiabetesCard', 
+  preview: true, 
+  description: 'T1D card with Trend Arrows and Colors' 
+});
