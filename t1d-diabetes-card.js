@@ -1,6 +1,7 @@
-/** T1D Diabetes Card - V1.5.1 - Full Structure **/
+/** T1D Diabetes Card - V1.5.4 - Full Structure **/
 
 class T1DDiabetesCard extends HTMLElement {
+
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -38,42 +39,35 @@ class T1DDiabetesCard extends HTMLElement {
   _render() {
     if (!this._config || !this._hass) return;
 
-    const getState = (e) => this._hass.states[e]?.state || "N/A";
+    const getState = (e) => (e && this._hass.states[e]) ? this._hass.states[e].state : "N/A";
     const val = parseFloat(getState(this._config.entity));
-    const trend = getState(this._config.trend_entity || "");
+    const trend = getState(this._config.trend_entity);
     const unit = this._config.unit_type || "mmol/L";
-    
-    // Dynamic color calculation
-    let color = "#2ecc71"; // Default Normal (Green)
-    if (!isNaN(val)) {
-      if (val < 3.9) color = "#ff4d4d"; // Low (Red)
-      else if (val > 8.9) color = "#e67e22"; // High (Orange)
-    }
-
+    const arrow = this._getArrow(trend);
     const perc = Math.min(val / 15, 1);
     const offset = 220 - (220 * perc);
+
     let a1c = !isNaN(val) ? (unit === "mmol/L" ? (((val * 18.018) + 46.7) / 28.7).toFixed(1) : ((val + 46.7) / 28.7).toFixed(1)) : "N/A";
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { --status-color: ${color}; }
-        ha-card { background: rgba(0, 0, 0, 0.2) !important; border: 1px solid var(--status-color) !important; border-radius: 12px !important; padding: 12px !important; color: white; }
+        ha-card { background: rgba(0, 187, 0, 0.06) !important; border: 1.5px solid rgba(0, 187, 0, 0.3) !important; border-radius: 12px !important; padding: 12px !important; color: white; }
         .title { font-size: 1rem; font-weight: 500; margin-bottom: 10px; opacity: 0.9; }
         .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .circle-container { position: relative; width: 90px; height: 90px; }
         .circle-svg { transform: rotate(-90deg); }
         .circle-bg { fill: none; stroke: #333; stroke-width: 8; }
-        .circle-val { fill: none; stroke: var(--status-color); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 220; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 1s ease; }
+        .circle-val { fill: none; stroke: rgba(0, 187, 0, 0.8); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 220; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 1s ease; }
         .glucose-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; }
         .glucose-num { font-size: 1.8rem; font-weight: bold; line-height: 1; }
         .arrow-area { text-align: center; padding-right: 15px; }
         .arrow { font-size: 2.5rem; line-height: 1; display: block; margin-top: 5px; }
         .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
         .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-        .box { border: 1px solid var(--status-color); padding: 8px; border-radius: 6px; text-align: center; }
+        .box { border: 1px solid rgba(0, 187, 0, 0.2); padding: 8px; border-radius: 6px; text-align: center; }
         .box-val { font-size: 1.15rem; font-weight: bold; }
-        .box-label { font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
-        .btn { border: 1px solid var(--status-color); padding: 6px; border-radius: 6px; text-align: center; color: var(--status-color); font-weight: 500; cursor: pointer; font-size: 0.85rem; }
+        .box-label { font-size: 0.7rem; font-weight: bold; }
+        .btn { border: 1px solid rgba(0, 187, 0, 0.3); padding: 6px; border-radius: 6px; text-align: center; cursor: pointer; font-size: 0.85rem; margin-top: 5px; }
       </style>
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
@@ -82,12 +76,12 @@ class T1DDiabetesCard extends HTMLElement {
                 <svg class="circle-svg" viewBox="0 0 80 80"><circle class="circle-bg" cx="40" cy="40" r="35"/><circle class="circle-val" cx="40" cy="40" r="35"/></svg>
                 <div class="glucose-text"><div class="glucose-num">${getState(this._config.entity)}</div><div style="font-size:0.7rem">${unit}</div></div>
             </div>
-            <div class="arrow-area">${trend}<br><span class="arrow">${this._getArrow(trend)}</span></div>
+            <div class="arrow-area">${trend}<br><span class="arrow">${arrow}</span></div>
         </div>
         <div class="grid-triple">
-           <div class="box"><div class="box-label">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
-           <div class="box"><div class="box-label">COB</div><div class="box-val">${getState(this._config.cob_entity)} g</div></div>
-           <div class="box"><div class="box-label">REQ</div><div class="box-val">${getState(this._config.req_entity)}</div></div>
+           <div class="box"><div class="box-label" style="color: #3498db;">IOB</div><div class="box-val">${getState(this._config.iob_entity)} U</div></div>
+           <div class="box"><div class="box-label" style="color: #2ecc71;">COB</div><div class="box-val">${getState(this._config.cob_entity)} g</div></div>
+           <div class="box"><div class="box-label" style="color: #e67e22;">REQ</div><div class="box-val">${getState(this._config.req_entity)} g</div></div>
         </div>
         <div class="grid-double">
            <div class="box"><div class="box-label">EST. A1C</div><div class="box-val">${a1c}%</div></div>
@@ -120,13 +114,13 @@ class T1DDiabetesCardEditor extends HTMLElement {
       { name: "cob_entity", label: "COB Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "req_entity", label: "REQ Sensor", selector: { entity: { domain: "sensor" } } },
       { name: "days_entity", label: "Sensor Days", selector: { entity: { domain: "sensor" } } },
-      { name: "alexa_name_1", label: "Name for Alexa Button 1", selector: { text: {} } },
-      { name: "alexa_1", label: "Alexa Script 1", selector: { entity: { domain: "script" } } },
-      { name: "alexa_name_2", label: "Name for Alexa Button 2", selector: { text: {} } },
-      { name: "alexa_2", label: "Alexa Script 2", selector: { entity: { domain: "script" } } }
+      { name: "alexa_name_1", label: "Alexa 1 Name", selector: { text: {} } },
+      { name: "alexa_1", label: "Alexa 1 Script", selector: { entity: { domain: "script" } } },
+      { name: "alexa_name_2", label: "Alexa 2 Name", selector: { text: {} } },
+      { name: "alexa_2", label: "Alexa 2 Script", selector: { entity: { domain: "script" } } }
     ];
     const form = document.createElement("ha-form");
-    form.hass = this._hass; form.schema = schema; form.data = this._config; form.computeLabel = (s) => s.label;
+    form.hass = this._hass; form.schema = schema; form.data = this._config;
     form.addEventListener("value-changed", (ev) => {
       this._config = ev.detail.value;
       this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
