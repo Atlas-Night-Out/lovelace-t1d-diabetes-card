@@ -22,14 +22,25 @@ A custom Home Assistant card for T1D management. Featuring a sleek, custom-style
 
 ## Installation
 
-This card is fully integrated with **HACS**, meaning the installation is entirely hands-off. You do **not** need to create manual folders or add resources yourself.
+This card is fully integrated with **HACS** (Home Assistant Community Store). The installation is entirely hands-off—HACS automatically registers the dashboard script for you behind the scenes.
 
 1. Open **HACS** from your Home Assistant sidebar.
-2. Click on the **Frontend** section.
-3. Type **`t1d`** into the top search bar.
-4. Select **T1D Diabetes Card** from the results.
-5. Click the green **Download** button in the bottom right corner.
-6. **Refresh your browser** to reload the dashboard cache.
+2. Type **`t1d`** into the top search bar.
+3. Click on the **T1D Diabetes Card** repository from the results.
+4. Click the three dots in the top right corner and select **Redownload** (or **Download** if installing for the first time).
+5. Click the green **Download** button on the pop-up window.
+6. **Refresh your browser** to clear your dashboard cache.
+
+### 🔍 Verifying the Installation
+You do **not** need to manually add resources. If you ever want to verify that HACS registered the card correctly, you can navigate to **Settings > Dashboards > Three Dots (top right) > Resources**. 
+
+There you will find the entry HACS automatically generated, pointing directly to your frontend path:
+`/hacsfiles/lovelace-t1d-diabetes-card/t1d-diabetes-card.js`
+
+### 🎥 Video Walkthrough: HACS Installation & Resource Verification
+
+https://github.com/user-attachments/assets/c69f8ba3-1758-447d-bea4-d7a1c3aa6d02
+
 
 ---
 
