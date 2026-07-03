@@ -1,4 +1,4 @@
-/** T1D Diabetes Card - V1.4.8 - Full Structure **/
+/** T1D Diabetes Card - V1.51 - Full Structure **/
 
 class T1DDiabetesCard extends HTMLElement {
 
