@@ -1,5 +1,5 @@
 /**
- * T1D Diabetes Card - Full Professional Version
+ * T1D Diabetes Card v1.59 - Full Professional Version
  * This code is structured to ensure stability, consistent formatting,
  * and includes all requested features: Trend arrows, IOB/COB/REQ 
  * coloring, A1C calculation with dynamic borders, and expanded
@@ -38,13 +38,11 @@ class T1DDiabetesCard extends HTMLElement {
     this._hass.callService(domain, service, {});
   }
 
-  /**
-   * Trend mapping logic for Dexcom
-   */
   _getTrendInfo(trend) {
     if (!trend) {
       return { label: "→" };
     }
+    
     const t = trend.toString().toLowerCase();
 
     if (t.includes('doubleup')) {
@@ -62,9 +60,6 @@ class T1DDiabetesCard extends HTMLElement {
     }
   }
 
-  /**
-   * A1C Calculation based on glucose value
-   */
   _calculateA1c(glucose, unit) {
     if (isNaN(glucose)) {
       return "N/A";
@@ -86,84 +81,130 @@ class T1DDiabetesCard extends HTMLElement {
     const unit = this._config.unit_type || "mmol/L";
     const a1c = this._calculateA1c(glucoseVal, unit);
 
-    // Color logic for A1C border
-    const a1cColor = a1c < 6 ? "#00bb00" : (a1c < 7 ? "#e67e22" : "#e74c3c");
+    // Dynamic A1C color threshold logic
+    let a1cColor = "#00bb00";
+    const a1cNum = parseFloat(a1c);
+    if (!isNaN(a1cNum)) {
+      if (a1cNum >= 6.5) {
+        a1cColor = "#e74c3c"; 
+      } else if (a1cNum >= 5.7) {
+        a1cColor = "#e67e22"; 
+      }
+    }
 
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { 
-          background: transparent; 
+          background: rgba(0, 25, 10, 0.4); 
           border: 1.5px solid #00bb00; 
-          border-radius: 12px; 
-          padding: 16px; 
+          border-radius: 16px; 
+          padding: 18px; 
           color: white; 
+          font-family: sans-serif;
         }
         .header { 
           display: flex; 
           align-items: center; 
           justify-content: space-between; 
-          margin-bottom: 20px; 
+          margin-bottom: 22px; 
+        }
+        .glucose-circle {
+          width: 110px;
+          height: 110px;
+          border-radius: 50%;
+          border: 5px solid #00bb00;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.3);
         }
         .val { 
-          font-size: 2.8rem; 
+          font-size: 2.4rem; 
           font-weight: bold; 
+          line-height: 1.1;
+        }
+        .unit-label {
+          font-size: 0.9rem;
+          color: #ccc;
+          margin-top: 2px;
+        }
+        .trend-container {
+          text-align: center;
+          margin-right: 10px;
+        }
+        .trend-text {
+          font-size: 1.1rem;
+          color: white;
+          margin-bottom: 4px;
         }
         .grid-triple { 
           display: grid; 
           grid-template-columns: repeat(3, 1fr); 
-          gap: 10px; 
-          margin-bottom: 12px; 
+          gap: 12px; 
+          margin-bottom: 14px; 
         }
         .grid-double { 
           display: grid; 
           grid-template-columns: 1fr 1fr; 
-          gap: 10px; 
-          margin-bottom: 12px; 
+          gap: 12px; 
+          margin-bottom: 14px; 
         }
         .box { 
           border: 1px solid #333; 
-          padding: 10px; 
-          border-radius: 8px; 
+          padding: 12px; 
+          border-radius: 10px; 
           text-align: center; 
+          background: rgba(0, 0, 0, 0.2);
         }
         .a1c-box { 
           border: 2px solid ${a1cColor}; 
         }
         .box-h { 
           font-weight: bold; 
-          font-size: 0.8rem; 
-          margin-bottom: 5px; 
+          font-size: 0.95rem; 
+          margin-bottom: 6px; 
+          text-transform: uppercase;
+        }
+        .box-v {
+          font-size: 1.4rem;
+          font-weight: bold;
         }
         .btn { 
           border: 1px solid #00bb00; 
-          padding: 18px; 
-          border-radius: 6px; 
+          padding: 16px; 
+          border-radius: 8px; 
           text-align: center; 
           cursor: pointer; 
           font-weight: bold; 
+          font-size: 1.2rem;
           color: #00bb00; 
-          margin-top: 10px; 
+          margin-top: 12px; 
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .btn:hover {
+          background: rgba(0, 187, 0, 0.1);
         }
       </style>
       <ha-card>
         <div class="header">
-            <div>
+            <div class="glucose-circle">
                 <div class="val">${getState(this._config.entity)}</div>
-                <div>${unit}</div>
+                <div class="unit-label">${unit}</div>
             </div>
-            <div style="text-align:center">
-                <div>${trend}</div>
-                <div style="font-size:3rem; line-height:1;">${trendInfo.label}</div>
+            <div class="trend-container">
+                <div class="trend-text">${trend}</div>
+                <div style="font-size: 3.5rem; line-height: 1;">${trendInfo.label}</div>
             </div>
         </div>
         <div class="grid-triple">
-           <div class="box"><div class="box-h" style="color: #3498db;">IOB</div><div>${getState(this._config.iob_entity)} U</div></div>
-           <div class="box"><div class="box-h" style="color: #2ecc71;">COB</div><div>${getState(this._config.cob_entity)} g</div></div>
-           <div class="box"><div class="box-h" style="color: #e67e22;">REQ</div><div>${getState(this._config.req_entity)}</div></div>
+           <div class="box"><div class="box-h" style="color: #3498db;">IOB</div><div class="box-v">${getState(this._config.iob_entity)} U</div></div>
+           <div class="box"><div class="box-h" style="color: #2ecc71;">COB</div><div class="box-v">${getState(this._config.cob_entity)} g</div></div>
+           <div class="box"><div class="box-h" style="color: #e67e22;">REQ</div><div class="box-v">${getState(this._config.req_entity)}</div></div>
         </div>
         <div class="grid-double">
-           <div class="box a1c-box"><div class="box-h">EST. A1C</div><div style="color:${a1cColor}">${a1c}%</div></div>
-           <div class="box"><div class="box-h">SENSOR DAYS</div><div>${getState(this._config.days_entity)}</div></div>
+           <div class="box a1c-box"><div class="box-h" style="color: ${a1cColor}">EST. A1C</div><div class="box-v" style="color: ${a1cColor}">${a1c}%</div></div>
+           <div class="box"><div class="box-h">SENSOR DAYS</div><div class="box-v" style="font-size: 1.1rem; line-height: 1.3;">${getState(this._config.days_entity)}</div></div>
         </div>
         <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
         <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa 2"}</div>
@@ -175,9 +216,6 @@ class T1DDiabetesCard extends HTMLElement {
   }
 }
 
-/**
- * Editor Configuration for the Card
- */
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -231,7 +269,6 @@ class T1DDiabetesCardEditor extends HTMLElement {
   }
 }
 
-// Registration
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
@@ -240,5 +277,5 @@ window.customCards.push({
   type: 't1d-diabetes-card', 
   name: 'T1DDiabetesCard', 
   preview: true, 
-  description: 'Stable T1D Management Card' 
+  description: 'Stable T1D Card with Large Text, Circle Gauge, and Shady Background' 
 });
