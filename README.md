@@ -14,22 +14,35 @@ A custom Home Assistant card for T1D management. Featuring a sleek, custom-style
 <img width="279" height="440" alt="2026-07-03_20-21-14" src="https://github.com/user-attachments/assets/42729739-c015-4cac-83be-13faf87f3b67" />
 
 
-*(Replace the path above with the actual link to your uploaded screenshot)*
+## Prerequisites
 
-## Installation
-1. Download `t1d-diabetes-card.js` from the latest release.
-2. Move the file into your Home Assistant `/config/www/` folder.
-3. In Home Assistant, go to **Settings > Dashboards > Resources**.
-4. Add a new resource:
-   - **URL:** `/local/t1d-diabetes-card.js`
-   - **Resource type:** JavaScript Module
-
-## Configuration
-This card is fully configurable via the Home Assistant UI editor:
-- **Card Title:** Custom label for your card.
-- **Units:** Toggle between `mg/dL` and `mmol/L`.
-- **Entities:** Map your sensors for Glucose, IOB, COB, REQ, and Sensor Days.
-- **Alexa Buttons:** Easily label and assign your existing Alexa scripts to either of the two buttons.
+> ⚠️ **Important System Requirement:** To populate the advanced tracking blocks (**IOB**, **COB**, and **REQ**), this setup requires an active **AAPS (Android Artificial Pancreas System)** or a similar looping data stream integrated into your Home Assistant instance. 
 
 ---
-*Maintained with ❤️ for the T1D community. Version 1.3.2.*
+
+## Installation
+
+This card is fully integrated with **HACS**, meaning the installation is entirely hands-off. You do **not** need to create manual folders or add resources yourself.
+
+1. Open **HACS** from your Home Assistant sidebar.
+2. Click on the **Frontend** section.
+3. Type **`t1d`** into the top search bar.
+4. Select **T1D Diabetes Card** from the results.
+5. Click the green **Download** button in the bottom right corner.
+6. **Refresh your browser** to reload the dashboard cache.
+
+---
+
+## Configuration & Features
+
+This card is 100% manageable via the native Home Assistant visual UI editor:
+
+* **Card Title:** Customize the header label to personalize your tracking station.
+* **True Unit Toggling:** Seamlessly switch between `mg/dL` and `mmol/L` metrics with automated mathematical safety bounds.
+* **Dexcom Trend Translation:** Native code parsing that replaces ugly raw database text strings with beautiful, clean, user-friendly movement text (e.g., "Rapid Down", "Steady").
+* **Advanced AAPS Matrix:** High-visibility, color-coded tracking cells explicitly dedicated to monitoring your **Insulin on Board (IOB)**, **Carbs on Board (COB)**, and **Required Basal Adjustments (REQ)**.
+* **Device Lifecycle Tracking:** Integrated tracking for active hardware Pod/Transmitter lifespan countdown days.
+* **Dual Alexa Voice Announcements:** Two dedicated, fully customizable interactive action buttons designed to instantly trigger your existing Home Assistant Alexa room announcement scripts for quick audio readouts.
+
+---
+*Maintained with ❤️ for the T1D community. Version 1.63.*
