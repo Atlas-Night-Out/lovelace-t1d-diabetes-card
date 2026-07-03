@@ -1,4 +1,4 @@
-/** T1D Diabetes Card - V1.4.8 - Full Structure - Part 1 **/
+/** T1D Diabetes Card - V1.4.8 - Full Structure **/
 
 class T1DDiabetesCard extends HTMLElement {
 
@@ -65,7 +65,6 @@ class T1DDiabetesCard extends HTMLElement {
         .btn { border: 1px solid rgba(0, 187, 0, 0.2); padding: 6px; border-radius: 6px; text-align: center; color: #66ff66; font-weight: 500; cursor: pointer; font-size: 0.85rem; }
         .graph-box { margin-top: 10px; height: 100px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
       </style>
-	  /** **/
       <ha-card>
         <div class="title">${this._config.title || "TDave Glucose"}</div>
         <div class="header-row">
@@ -88,7 +87,7 @@ class T1DDiabetesCard extends HTMLElement {
            <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
            <div class="btn" id="alexa2">${this._config.alexa_name_2 || "Alexa 2"}</div>
         </div>
-        <div class="graph-box">Graph Placeholder</div>
+        <div class="graph-box" style="display: none;"></div>
       </ha-card>
     `;
 
@@ -128,5 +127,4 @@ class T1DDiabetesCardEditor extends HTMLElement {
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard v1.4.7', preview: true, description: 'Stable T1D management card' });
-
+window.customCards.push({ type: 't1d-diabetes-card', name: 'T1DDiabetesCard', preview: true, description: 'Stable T1D management card' });
