@@ -1,6 +1,9 @@
 /**
- * T1D Diabetes Card
- * This version uses explicit, verbose logic to ensure stability.
+ * T1D Diabetes Card - Full Professional Version
+ * This code is structured to ensure stability, consistent formatting,
+ * and includes all requested features: Trend arrows, IOB/COB/REQ 
+ * coloring, A1C calculation with dynamic borders, and expanded
+ * Alexa button areas.
  */
 
 class T1DDiabetesCard extends HTMLElement {
@@ -36,13 +39,12 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   /**
-   * Verbose mapping to prevent "steady" showing as "down"
+   * Trend mapping logic for Dexcom
    */
   _getTrendInfo(trend) {
     if (!trend) {
       return { label: "→" };
     }
-    
     const t = trend.toString().toLowerCase();
 
     if (t.includes('doubleup')) {
@@ -60,6 +62,9 @@ class T1DDiabetesCard extends HTMLElement {
     }
   }
 
+  /**
+   * A1C Calculation based on glucose value
+   */
   _calculateA1c(glucose, unit) {
     if (isNaN(glucose)) {
       return "N/A";
@@ -81,21 +86,75 @@ class T1DDiabetesCard extends HTMLElement {
     const unit = this._config.unit_type || "mmol/L";
     const a1c = this._calculateA1c(glucoseVal, unit);
 
+    // Color logic for A1C border
+    const a1cColor = a1c < 6 ? "#00bb00" : (a1c < 7 ? "#e67e22" : "#e74c3c");
+
     this.shadowRoot.innerHTML = `
       <style>
-        ha-card { background: rgba(0, 0, 0, 0.2); border: 1.5px solid #00bb00; border-radius: 12px; padding: 16px; color: white; }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .val { font-size: 2.8rem; font-weight: bold; }
-        .grid-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-        .grid-double { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-        .box { border: 1px solid #333; padding: 10px; border-radius: 8px; text-align: center; background: rgba(255,255,255,0.05); }
-        .box-h { font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; }
-        .btn { border: 1px solid #00bb00; padding: 12px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; color: #00bb00; margin-top: 8px; }
+        ha-card { 
+          background: transparent; 
+          border: 1.5px solid #00bb00; 
+          border-radius: 12px; 
+          padding: 16px; 
+          color: white; 
+        }
+        .header { 
+          display: flex; 
+          align-items: center; 
+          justify-content: space-between; 
+          margin-bottom: 20px; 
+        }
+        .val { 
+          font-size: 2.8rem; 
+          font-weight: bold; 
+        }
+        .grid-triple { 
+          display: grid; 
+          grid-template-columns: repeat(3, 1fr); 
+          gap: 10px; 
+          margin-bottom: 12px; 
+        }
+        .grid-double { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          gap: 10px; 
+          margin-bottom: 12px; 
+        }
+        .box { 
+          border: 1px solid #333; 
+          padding: 10px; 
+          border-radius: 8px; 
+          text-align: center; 
+        }
+        .a1c-box { 
+          border: 2px solid ${a1cColor}; 
+        }
+        .box-h { 
+          font-weight: bold; 
+          font-size: 0.8rem; 
+          margin-bottom: 5px; 
+        }
+        .btn { 
+          border: 1px solid #00bb00; 
+          padding: 18px; 
+          border-radius: 6px; 
+          text-align: center; 
+          cursor: pointer; 
+          font-weight: bold; 
+          color: #00bb00; 
+          margin-top: 10px; 
+        }
       </style>
       <ha-card>
         <div class="header">
-            <div><div class="val">${getState(this._config.entity)}</div><div>${unit}</div></div>
-            <div style="text-align:center"><div>${trend}</div><div style="font-size:3rem; line-height:1;">${trendInfo.label}</div></div>
+            <div>
+                <div class="val">${getState(this._config.entity)}</div>
+                <div>${unit}</div>
+            </div>
+            <div style="text-align:center">
+                <div>${trend}</div>
+                <div style="font-size:3rem; line-height:1;">${trendInfo.label}</div>
+            </div>
         </div>
         <div class="grid-triple">
            <div class="box"><div class="box-h" style="color: #3498db;">IOB</div><div>${getState(this._config.iob_entity)} U</div></div>
@@ -103,7 +162,7 @@ class T1DDiabetesCard extends HTMLElement {
            <div class="box"><div class="box-h" style="color: #e67e22;">REQ</div><div>${getState(this._config.req_entity)}</div></div>
         </div>
         <div class="grid-double">
-           <div class="box"><div class="box-h">EST. A1C</div><div>${a1c}%</div></div>
+           <div class="box a1c-box"><div class="box-h">EST. A1C</div><div style="color:${a1cColor}">${a1c}%</div></div>
            <div class="box"><div class="box-h">SENSOR DAYS</div><div>${getState(this._config.days_entity)}</div></div>
         </div>
         <div class="btn" id="alexa1">${this._config.alexa_name_1 || "Alexa 1"}</div>
@@ -116,6 +175,9 @@ class T1DDiabetesCard extends HTMLElement {
   }
 }
 
+/**
+ * Editor Configuration for the Card
+ */
 class T1DDiabetesCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -169,6 +231,7 @@ class T1DDiabetesCardEditor extends HTMLElement {
   }
 }
 
+// Registration
 customElements.define('t1d-diabetes-card', T1DDiabetesCard);
 customElements.define('t1d-diabetes-card-editor', T1DDiabetesCardEditor);
 
@@ -177,5 +240,5 @@ window.customCards.push({
   type: 't1d-diabetes-card', 
   name: 'T1DDiabetesCard', 
   preview: true, 
-  description: 'Robust T1D Management Card' 
+  description: 'Stable T1D Management Card' 
 });
