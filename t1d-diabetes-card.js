@@ -2,7 +2,7 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      v1.74 - Full Enterprise Production Build
+ * @version      v1.78 - Full Enterprise Production Build
  * @release      Definitive Edition (Graphing & High-Vis Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
@@ -519,10 +519,22 @@ class T1DDiabetesCard extends HTMLElement {
     const width = 300, height = 80;
     const now = Date.now();
     const startTime = now - (this._range * 60 * 60 * 1000);
-    const high = this._config.unit_type === "mmol/L" ? 10.0 : 180;
-    const low = this._config.unit_type === "mmol/L" ? 4.0 : 70;
 
-    const getY = (val) => height - (((val - (low - 2)) / ((high + 2) - (low - 2))) * height);
+    // 1. DYNAMIC SCALING: Find min/max of current data to prevent clipping
+    const states = this._history.map(h => h.state);
+    const dataMin = Math.min(...states);
+    const dataMax = Math.max(...states);
+    const padding = (dataMax - dataMin) * 0.2; // 20% vertical padding
+    
+    // 2. DEFINE THRESHOLDS
+    const lowLimit = this._config.unit_type === "mmol/L" ? 4.0 : 70;
+    const highLimit = this._config.unit_type === "mmol/L" ? 10.0 : 180;
+    
+    // Set dynamic Y bounds: Must include thresholds AND data min/max
+    const graphBottom = Math.min(dataMin, lowLimit) - padding;
+    const graphTop = Math.max(dataMax, highLimit) + padding;
+
+    const getY = (val) => height - (((val - graphBottom) / (graphTop - graphBottom)) * height);
 
     let pathD = "";
     this._history.forEach((p, i) => {
@@ -533,7 +545,7 @@ class T1DDiabetesCard extends HTMLElement {
 
     const buttons = [1, 3, 6, 12, 24].map(r => 
       `<button style="${this._range === r ? 'background:#00bb00; color:black;' : 'background:transparent; color:#00bb00;'} border:1px solid #00bb00; margin-right:4px; cursor:pointer;" 
-               onclick="this.getRootNode().host._range=${r}; this.getRootNode().host._render()">
+               onclick="this.getRootNode().host._range=${r}; this.getRootNode().host._render(true)">
          ${r}h</button>`
     ).join('');
 
@@ -541,9 +553,9 @@ class T1DDiabetesCard extends HTMLElement {
       <div class="graph-container">
         <div style="margin-bottom:5px;">${buttons}</div>
         <svg viewBox="0 0 ${width} ${height}" class="history-graph" preserveAspectRatio="none" style="overflow:visible;">
-          <line x1="0" y1="${getY(high)}" x2="${width}" y2="${getY(high)}" stroke="#e67e22" stroke-width="1" stroke-dasharray="4" />
-          <line x1="0" y1="${getY(low)}" x2="${width}" y2="${getY(low)}" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4" />
-          <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="2" />
+          <line x1="0" y1="${getY(highLimit)}" x2="${width}" y2="${getY(highLimit)}" stroke="#e67e22" stroke-width="1" stroke-dasharray="4" />
+          <line x1="0" y1="${getY(lowLimit)}" x2="${width}" y2="${getY(lowLimit)}" stroke="#e74c3c" stroke-width="2" />
+          <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="2.5" style="filter: drop-shadow(0px 0px 2px #00bb00);" />
         </svg>
       </div>
     `;
