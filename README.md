@@ -62,4 +62,4 @@ This card is 100% manageable via the native Home Assistant visual UI editor:
 * **Dual Alexa Voice Announcements:** Two dedicated, fully customizable interactive action buttons designed to instantly trigger your existing Home Assistant Alexa room announcement scripts for quick audio readouts.
 
 ---
-*Maintained with 💙 for the T1D community. Version 1.63.*
+*Maintained with 💙 for the T1D community. Version 1.80.*
