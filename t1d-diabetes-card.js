@@ -2,7 +2,7 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      v1.78 - Full Enterprise Production Build
+ * @version      v1.80 - Full Enterprise Production Build
  * @release      Definitive Edition (Graphing & High-Vis Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
@@ -87,17 +87,19 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   async _fetchHistory() {
-    if (!this._hass || !this._config || !this._config.entity) return;
+    // Check for the new glucose_entity, or fallback to the old entity
+    const entity = this._config.glucose_entity || this._config.entity;
+    if (!this._hass || !entity) return;
 
     const now = new Date();
     const startTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-    
+
     try {
       const response = await this._hass.callApi(
-        'GET', 
-        `history/period/${startTime.toISOString()}?filter_entity_id=${this._config.entity}&minimal_response`
+        'GET',
+        `history/period/${startTime.toISOString()}?filter_entity_id=${entity}&minimal_response`
       );
-      
+
       if (response && response.length > 0 && response[0].length > 0) {
         this._history = response[0]
           .map(state => ({
@@ -105,8 +107,7 @@ class T1DDiabetesCard extends HTMLElement {
             last_changed: new Date(state.last_changed).getTime()
           }))
           .filter(item => !isNaN(item.state));
-        
-        // Push the update to the DOM now that history is loaded
+
         this._renderDOM();
       }
     } catch (error) {
@@ -720,6 +721,16 @@ class T1DDiabetesCardEditor extends HTMLElement {
         label: "Core CGM Blood Glucose Concentration Sensor Value ID",
         selector: { entity: { domain: "sensor" } }
       },
+	  {
+      name: "sensor_type",
+      label: "CGM Source Type",
+      selector: { select: { options: ["Dexcom", "Nightscout", "Libre"] } }
+    },
+    {
+      name: "glucose_entity",
+      label: "Primary Glucose Sensor",
+      selector: { entity: { domain: "sensor" } }
+    },
       {
         name: "trend_entity",
         label: "Interstitial Fluid Trend Path Direction Pointer Sensor",
@@ -764,7 +775,17 @@ class T1DDiabetesCardEditor extends HTMLElement {
         name: "alexa_2",
         label: "Second Interactive Button Target Automated Service Script Hook",
         selector: { entity: { domain: "script" } }
-      }
+      },
+	  {
+      name: "high_marker",
+      label: "High Glucose Threshold Marker",
+      selector: { number: { mode: "box", step: 0.1 } }
+    },
+    {
+      name: "low_marker",
+      label: "Low Glucose Threshold Marker",
+      selector: { number: { mode: "box", step: 0.1 } }
+    },
     ];
 
     const formElement = document.createElement("ha-form");
