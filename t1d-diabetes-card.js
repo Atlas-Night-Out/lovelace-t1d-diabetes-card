@@ -2,7 +2,7 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      v1.73 - Full Enterprise Production Build
+ * @version      v1.74 - Full Enterprise Production Build
  * @release      Definitive Edition (Graphing & High-Vis Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
@@ -256,6 +256,22 @@ class T1DDiabetesCard extends HTMLElement {
 
     return `
       <style>
+	  .graph-container {
+          margin-top: 15px;
+          margin-bottom: 15px;
+          padding: 12px 15px 15px 15px;
+          background: rgba(0, 0, 0, 0.25);
+          border: 1px solid #333333;
+          border-radius: 10px;
+        }
+        /* ADD THIS BLOCK HERE */
+        .history-graph {
+          width: 100%;
+          height: 80px;
+          display: block;
+          filter: drop-shadow(0px 0px 2px #00bb00);
+          margin-top: 8px;
+        }
         ha-card { 
           background: rgba(0, 25, 10, 0.4); 
           border: 1.5px solid #00bb00; 
@@ -517,44 +533,37 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   _renderGraph() {
-    if (!this._history || this._history.length < 2) {
-      return `
-        <div class="graph-container">
-          <div class="box-h" style="color: #ffffff; opacity: 0.7; text-align: left;">6-HOUR TREND</div>
-          <div style="text-align:center; color:#888; padding: 20px 0; font-size: 0.9rem;">Accumulating Data...</div>
-        </div>`;
-    }
+    if (!this._range) this._range = 6;
+    if (!this._history || this._history.length < 2) return `<div class="graph-container">Accumulating Data...</div>`;
 
-    const width = 300; 
-    const height = 80;
+    const width = 300, height = 80;
     const now = Date.now();
-    const startTime = now - (6 * 60 * 60 * 1000); 
-    
-    // Define your targets (adjust these to your personal goals)
-    const highTarget = this._config.unit_type === "mmol/L" ? 10.0 : 180;
-    const lowTarget = this._config.unit_type === "mmol/L" ? 4.0 : 70;
-    
-    let minVal = Math.min(...this._history.map(d => d.state), lowTarget - 1);
-    let maxVal = Math.max(...this._history.map(d => d.state), highTarget + 1);
-    const range = maxVal - minVal;
+    const startTime = now - (this._range * 60 * 60 * 1000);
+    const high = this._config.unit_type === "mmol/L" ? 10.0 : 180;
+    const low = this._config.unit_type === "mmol/L" ? 4.0 : 70;
 
-    // Helper to map values to SVG Y coordinate
-    const getY = (val) => height - (((val - minVal) / range) * height);
+    const getY = (val) => height - (((val - (low - 2)) / ((high + 2) - (low - 2))) * height);
 
     let pathD = "";
-    this._history.forEach((point, index) => {
-      let x = ((point.last_changed - startTime) / (now - startTime)) * width;
-      let y = getY(point.state);
-      pathD += (index === 0 ? `M ${x} ${y} ` : `L ${x} ${y} `);
+    this._history.forEach((p, i) => {
+      let x = ((p.last_changed - startTime) / (now - startTime)) * width;
+      let y = getY(p.state);
+      pathD += (i === 0 ? `M ${x} ${y} ` : `L ${x} ${y} `);
     });
+
+    const buttons = [1, 3, 6, 12, 24].map(r => 
+      `<button style="${this._range === r ? 'background:#00bb00; color:black;' : 'background:transparent; color:#00bb00;'} border:1px solid #00bb00; margin-right:4px; cursor:pointer;" 
+               onclick="this.getRootNode().host._range=${r}; this.getRootNode().host._render()">
+         ${r}h</button>`
+    ).join('');
 
     return `
       <div class="graph-container">
-        <div class="box-h" style="color: #ffffff; opacity: 0.7; text-align: left;">6-HOUR TREND</div>
+        <div style="margin-bottom:5px;">${buttons}</div>
         <svg viewBox="0 0 ${width} ${height}" class="history-graph" preserveAspectRatio="none" style="overflow:visible;">
-          <line x1="0" y1="${getY(highTarget)}" x2="${width}" y2="${getY(highTarget)}" stroke="#e67e22" stroke-width="1" stroke-dasharray="4" />
-          <line x1="0" y1="${getY(lowTarget)}" x2="${width}" y2="${getY(lowTarget)}" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4" />
-          <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <line x1="0" y1="${getY(high)}" x2="${width}" y2="${getY(high)}" stroke="#e67e22" stroke-width="1" stroke-dasharray="4" />
+          <line x1="0" y1="${getY(low)}" x2="${width}" y2="${getY(low)}" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4" />
+          <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="2" />
         </svg>
       </div>
     `;
