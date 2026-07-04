@@ -2,11 +2,11 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      1.69 - Full Enterprise Production Build
- * @release      Definitive Edition (Arc, Trends & Alerts)
+ * @version      1.70 - Full Enterprise Production Build
+ * @release      Definitive Edition (Arc, Trends & Smart Lifecycle Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
- * xDrip-styled sanitized trend translations, modularized 
+ * Personal-Sanitized trend translations, modularized 
  * CSS sub-rendering, and adaptive unit map safety grids.
  * Big thank you to ResinChem for his help and support!
  * ====================================================================
@@ -38,15 +38,16 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   /**
-   * Generates a structural default state setup if user card configuration is empty.
+   * Generates a structural default template setup if user card configuration is empty.
+   * Completely genericized for open-source community distribution.
    * @returns {Object} Static fallback configuration nodes.
    */
   static getStubConfig() {
     return {
-      title: "T1Dave Glucose",
+      title: "CGM Monitor",
       unit_type: "mmol/L",
-      alexa_name_1: "LivingRoom Readout",
-      alexa_name_2: "BedRoom Readout"
+      alexa_name_1: "Broadcast Area 1",
+      alexa_name_2: "Broadcast Area 2"
     };
   }
 
@@ -239,7 +240,6 @@ class T1DDiabetesCard extends HTMLElement {
           margin-bottom: 24px; 
         }
         
-        /* UPDATED: Dynamic SVG Container Styles */
         .glucose-container {
           position: relative;
           width: 120px;
@@ -394,13 +394,41 @@ class T1DDiabetesCard extends HTMLElement {
   /**
    * Generates the lower dual-column monitoring analytics layout blocks.
    * Includes the dynamically styled HbA1c projections and lifecycle parameters.
+   * Smart parsing evaluates string text patterns to prevent false early alerts.
    * @private
    */
   _renderAnalyticsGrid(a1cValue, a1cColor, lifespan) {
-    // Dynamic background alert for Sensor Days
-    const daysLeft = parseInt(lifespan);
-    const isUrgent = !isNaN(daysLeft) && daysLeft <= 1;
-    const alertBg = isUrgent ? "rgba(231, 76, 60, 0.3)" : "rgba(0, 0, 0, 0.25)";
+    let isUrgent = false;
+    const cleanLife = lifespan.toString().toLowerCase().trim();
+
+    // Smart string-duration safety logic tracker
+    if (cleanLife.includes('day')) {
+      const dayMatch = cleanLife.match(/(\d+)\s*day/);
+      if (dayMatch) {
+        const parsedDays = parseInt(dayMatch[1], 10);
+        if (parsedDays < 1) {
+          isUrgent = true;
+        } else if (parsedDays === 1) {
+          // If it reads exactly 1 day with no extra trailing hours/minutes, it is urgent.
+          // Otherwise "1 days, 11 hours" stays safe as it is greater than 24 hours total duration.
+          if (!cleanLife.includes('hour') && !cleanLife.includes('minute')) {
+            isUrgent = true;
+          }
+        }
+      }
+    } else if (cleanLife.includes('hour') || cleanLife.includes('minute')) {
+      // Missing 'day' keyword entirely but has hours/minutes -> strictly sub-24hr window
+      isUrgent = true;
+    } else {
+      // Fallback fallback evaluator rule for standard numbers
+      const numericDays = parseFloat(cleanLife);
+      if (!isNaN(numericDays) && numericDays <= 1 && numericDays > 0) {
+        isUrgent = true;
+      }
+    }
+
+    // Refined matching shade palette layout variables
+    const alertBg = isUrgent ? "rgba(231, 76, 60, 0.15)" : "rgba(0, 0, 0, 0.25)";
     const alertBorder = isUrgent ? "2px solid #e74c3c" : "1px solid #333333";
 
     return `
@@ -487,8 +515,8 @@ class T1DDiabetesCard extends HTMLElement {
         ${templateHeader}
         ${templateMatrix}
         ${templateAnalytics}
-        <div class="btn" id="triggerActionOne">${this._config.alexa_name_1 || "LivingRoom Readout"}</div>
-        <div class="btn" id="triggerActionTwo">${this._config.alexa_name_2 || "BedRoom Readout"}</div>
+        <div class="btn" id="triggerActionOne">${this._config.alexa_name_1 || "Broadcast Area 1"}</div>
+        <div class="btn" id="triggerActionTwo">${this._config.alexa_name_2 || "Broadcast Area 2"}</div>
       </ha-card>
     `;
 
