@@ -514,48 +514,39 @@ class T1DDiabetesCard extends HTMLElement {
    */
   _renderGraph() {
     if (!this._range) this._range = 6;
-    if (!this._history || this._history.length < 2) return `<div class="graph-container">Accumulating Data...</div>`;
+    if (!this._history || this._history.length < 2) return `<div class="graph-container">Loading...</div>`;
 
     const width = 300, height = 80;
     const now = Date.now();
     const startTime = now - (this._range * 60 * 60 * 1000);
-
-    // 1. DYNAMIC SCALING: Find min/max of current data to prevent clipping
-    const states = this._history.map(h => h.state);
-    const dataMin = Math.min(...states);
-    const dataMax = Math.max(...states);
-    const padding = (dataMax - dataMin) * 0.2; // 20% vertical padding
     
-    // 2. DEFINE THRESHOLDS
-    const lowLimit = this._config.unit_type === "mmol/L" ? 4.0 : 70;
-    const highLimit = this._config.unit_type === "mmol/L" ? 10.0 : 180;
-    
-    // Set dynamic Y bounds: Must include thresholds AND data min/max
-    const graphBottom = Math.min(dataMin, lowLimit) - padding;
-    const graphTop = Math.max(dataMax, highLimit) + padding;
+    // Use user-defined config or fallbacks
+    const high = this._config.high_marker || 10.0;
+    const low = this._config.low_marker || 4.0;
 
-    const getY = (val) => height - (((val - graphBottom) / (graphTop - graphBottom)) * height);
+    const getY = (val) => height - (((val - (low - 3)) / ((high + 3) - (low - 3))) * height);
 
-    let pathD = "";
-    this._history.forEach((p, i) => {
-      let x = ((p.last_changed - startTime) / (now - startTime)) * width;
-      let y = getY(p.state);
-      pathD += (i === 0 ? `M ${x} ${y} ` : `L ${x} ${y} `);
-    });
-
-    const buttons = [1, 3, 6, 12, 24].map(r => 
-      `<button style="${this._range === r ? 'background:#00bb00; color:black;' : 'background:transparent; color:#00bb00;'} border:1px solid #00bb00; margin-right:4px; cursor:pointer;" 
-               onclick="this.getRootNode().host._range=${r}; this.getRootNode().host._render(true)">
-         ${r}h</button>`
-    ).join('');
+    // Build segments instead of one path
+    let segments = [];
+    for (let i = 0; i < this._history.length - 1; i++) {
+      const p1 = this._history[i];
+      const p2 = this._history[i + 1];
+      const x1 = ((p1.last_changed - startTime) / (now - startTime)) * width;
+      const x2 = ((p2.last_changed - startTime) / (now - startTime)) * width;
+      const y1 = getY(p1.state);
+      const y2 = getY(p2.state);
+      
+      // Color logic: Red if below low or above high, otherwise Green
+      const color = (p1.state < low || p1.state > high) ? "#e74c3c" : "#00bb00";
+      segments.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="2" />`);
+    }
 
     return `
       <div class="graph-container">
-        <div style="margin-bottom:5px;">${buttons}</div>
-        <svg viewBox="0 0 ${width} ${height}" class="history-graph" preserveAspectRatio="none" style="overflow:visible;">
-          <line x1="0" y1="${getY(highLimit)}" x2="${width}" y2="${getY(highLimit)}" stroke="#e67e22" stroke-width="1" stroke-dasharray="4" />
-          <line x1="0" y1="${getY(lowLimit)}" x2="${width}" y2="${getY(lowLimit)}" stroke="#e74c3c" stroke-width="2" />
-          <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="2.5" style="filter: drop-shadow(0px 0px 2px #00bb00);" />
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="overflow:visible;">
+          <line x1="0" y1="${getY(high)}" x2="${width}" y2="${getY(high)}" stroke="#555" stroke-width="1" stroke-dasharray="3" />
+          <line x1="0" y1="${getY(low)}" x2="${width}" y2="${getY(low)}" stroke="#555" stroke-width="1" stroke-dasharray="3" />
+          ${segments.join('')}
         </svg>
       </div>
     `;
