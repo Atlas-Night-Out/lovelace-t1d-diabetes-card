@@ -2,13 +2,13 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      1.62 - Full Enterprise Production Build
+ * @version      1.67 - Full Enterprise Production Build
  * @release      Definitive Edition
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
- *               Continuous Glucose Monitor (CGM) analytics. Featuring 
- *               xDrip-styled sanitized trend translations, modularized 
- *               CSS sub-rendering, and adaptive unit map safety grids.
- *               Big thank you to ResinChem for is help and support to make this ever possible!
+ * Continuous Glucose Monitor (CGM) analytics. Featuring 
+ * xDrip-styled sanitized trend translations, modularized
+ * CSS sub-rendering, and adaptive unit map safety grids.
+ * Big thank you to ResinChem for is help and support to make this ever possible!
  * ====================================================================
  */
 
@@ -117,15 +117,16 @@ class T1DDiabetesCard extends HTMLElement {
     // Clean string by removing underscores and whitespace for cross-integration compatibility
     const t = trend.toString().toLowerCase().replace(/_/g, '').replace(/\s/g, '').trim();
 
+    // Check for explicit trend states, including 'rising_slightly'/'falling_slightly' variants
     if (t.includes('doubleup')) {
       return { label: '↑↑', text: 'Rapid Up' };
     } else if (t.includes('singleup') || t.includes('rapidup') || t === 'up') {
       return { label: '↑', text: 'Going Up' };
-    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t === 'climbing') {
+    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t === 'climbing' || t.includes('risingslightly')) {
       return { label: '↗', text: 'Slow Up' };
     } else if (t.includes('flat') || t.includes('steady') || t === 'none') {
       return { label: '→', text: 'Steady' };
-    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t === 'falling') {
+    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t === 'falling' || t.includes('fallingslightly')) {
       return { label: '↘', text: 'Slow Down' };
     } else if (t.includes('doubledown') || t.includes('rapiddown')) {
       return { label: '↓↓', text: 'Rapid Down' };
