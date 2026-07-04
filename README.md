@@ -1,4 +1,4 @@
-# T1DDiabetesCard v1.85
+# T1DDiabetesCard v1.86
 
 A custom Home Assistant card for T1D management. Featuring a sleek, custom-styled dark interface with high-visibility data monitoring and integrated voice command support.
 
@@ -62,4 +62,4 @@ This card is 100% manageable via the native Home Assistant visual UI editor:
 * **Dual Alexa Voice Announcements:** Two dedicated, fully customizable interactive action buttons designed to instantly trigger your existing Home Assistant Alexa room announcement scripts for quick audio readouts.
 
 ---
-*Maintained with 💙 for the T1D community. Version 1.82.*
+*Maintained with 💙 for the T1D community. Version 1.86.*
