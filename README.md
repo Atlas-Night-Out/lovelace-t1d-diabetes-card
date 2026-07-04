@@ -16,7 +16,27 @@ A custom Home Assistant card for T1D management. Featuring a sleek, custom-style
 
 ## Prerequisites
 
-> ⚠️ **Important System Requirement:** To populate the advanced tracking blocks (**IOB**, **COB**, and **REQ**), this setup requires an active **AAPS (Android Artificial Pancreas System)** or a similar looping data stream integrated into your Home Assistant instance. For detailed setup guides, refer to the official [AndroidAPS Documentation](https://androidaps.readthedocs.io/en/latest/).
+### Prerequisites
+
+* **⚠️ Important System Requirement:** To populate the advanced tracking blocks (IOB, COB, and REQ), this setup requires an active **AAPS (Android Artificial Pancreas System)** or a similar looping data stream integrated into your Home Assistant instance. For detailed setup guides, refer to the official [AndroidAPS Documentation](https://androidaps.readthedocs.io/).
+* **CGM Data Source:** To display real-time glucose readings, you must have an active CGM integration in Home Assistant. Depending on your sensor, this may require:
+    * The official **Dexcom App** (configured with "Share" enabled).
+    * A "Build Your Own Dexcom App" (BYODA) or **xDrip+** for advanced looping and local broadcasting.
+    * *Note: Ensure your chosen app is compatible with your specific transmitter and sensor model.*
+
+---
+
+### Supported Dexcom CGM Systems
+
+| System | Official Website Link |
+| :--- | :--- |
+| **Dexcom ONE+** | [Dexcom ONE+ Official Site](https://www.dexcom.com/en-ie/ie-dexcom-one-plus-cgm-system) |
+| **Dexcom G7** | [Dexcom G7 Official Site](https://www.dexcom.com/en-us/faqs/dexcom-g7-cgm-system) |
+| **Dexcom G6** | [Dexcom G6 Official Site](https://www.dexcom.com/en-us/g6-cgm-system) |
+
+**Important Notice regarding Dexcom G6:**
+Dexcom has officially announced the discontinuation of the Dexcom G6 CGM system. Manufacturing of the G6 system ceased on July 1, 2026. While existing inventory may remain available through some distributors for a limited time, Dexcom encourages users to transition to the G7 or G7 15 Day systems to ensure continued support and supply availability.
+
 
 ---
 
