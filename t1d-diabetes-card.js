@@ -2,12 +2,12 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      1.70 - Full Enterprise Production Build
- * @release      Definitive Edition (Arc, Trends & Smart Lifecycle Alerts)
+ * @version      v1.71 - Full Enterprise Production Build
+ * @release      Definitive Edition (Graphing & High-Vis Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
  * Personal-Sanitized trend translations, modularized 
- * CSS sub-rendering, and adaptive unit map safety grids.
+ * CSS sub-rendering, adaptive unit map safety grids, and REST history.
  * Big thank you to ResinChem for his help and support!
  * ====================================================================
  */
@@ -26,6 +26,8 @@ class T1DDiabetesCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = null;
     this._hass = null;
+    this._history = [];
+    this._lastFetch = 0;
     console.log("%c [T1D Card] Core System Engine Initialized successfully.", "color: #00bb00; font-weight: bold;");
   }
 
@@ -61,6 +63,7 @@ class T1DDiabetesCard extends HTMLElement {
       throw new Error("Critical Error: Invalid T1D Card Configuration Schema Detected.");
     }
     this._config = config;
+    this._lastFetch = 0; // Reset timer on config load
     if (this._hass) {
       this._render();
     }
@@ -75,6 +78,39 @@ class T1DDiabetesCard extends HTMLElement {
     this._hass = hass;
     if (this._config) {
       this._render();
+    }
+  }
+
+  /**
+   * Background asynchronous data fetcher for plotting the 6-hour SVG trend graph.
+   * Interfaces with the native Home Assistant REST API. Throttled to 5 minutes.
+   * @private
+   */
+  async _fetchHistory() {
+    if (!this._hass || !this._config || !this._config.entity) return;
+
+    const now = new Date();
+    const startTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+    
+    try {
+      const response = await this._hass.callApi(
+        'GET', 
+        `history/period/${startTime.toISOString()}?filter_entity_id=${this._config.entity}&minimal_response`
+      );
+      
+      if (response && response.length > 0 && response[0].length > 0) {
+        this._history = response[0]
+          .map(state => ({
+            state: parseFloat(state.state),
+            last_changed: new Date(state.last_changed).getTime()
+          }))
+          .filter(item => !isNaN(item.state));
+        
+        // Push the update to the DOM now that history is loaded
+        this._renderDOM();
+      }
+    } catch (error) {
+      console.error("[T1D Card] Failed to fetch historical data for graph rendering:", error);
     }
   }
 
@@ -215,6 +251,9 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   _getStyles(glucoseColor, a1cColor) {
+    // Pulse animation logic for severe bounds
+    const isAlert = glucoseColor === '#e74c3c';
+
     return `
       <style>
         ha-card { 
@@ -252,7 +291,15 @@ class T1DDiabetesCard extends HTMLElement {
           transform: rotate(-90deg);
           transform-origin: 50% 50%;
           transition: stroke 0.4s ease-in-out, stroke-dashoffset 0.4s ease-in-out;
+          ${isAlert ? 'animation: pulse 1.5s infinite;' : ''}
         }
+
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+
         .circle-text {
           position: absolute;
           text-align: center;
@@ -318,6 +365,22 @@ class T1DDiabetesCard extends HTMLElement {
           overflow: hidden;
           text-overflow: ellipsis;
         }
+        .graph-container {
+          margin-top: 15px;
+          margin-bottom: 15px;
+          padding: 12px 15px 15px 15px;
+          background: rgba(0, 0, 0, 0.25);
+          border: 1px solid #333333;
+          border-radius: 10px;
+        }
+        .history-graph {
+          width: 100%;
+          height: auto;
+          max-height: 80px;
+          display: block;
+          filter: drop-shadow(0px 4px 6px rgba(0, 187, 0, 0.2));
+          margin-top: 8px;
+        }
         .btn { 
           border: 1px solid #00bb00; 
           padding: 18px; 
@@ -344,16 +407,20 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Generates the upper dashboard section template strings.
-   * Contains the primary circle container and layout vectors.
+   * Includes high-visibility logic for low glucose events.
    * @private
    */
   _renderHeader(value, unit, trendText, trendArrow, color, offset, circumference) {
+    // High-visibility check: If color is red, bypass offset to fill the circle entirely.
+    const isAlert = color === '#e74c3c';
+    const activeOffset = isAlert ? 0 : offset;
+    
     return `
       <div class="header">
           <div class="glucose-container">
               <svg width="120" height="120">
                 <circle cx="60" cy="60" r="54" fill="none" stroke="#333" stroke-width="4" />
-                <circle class="progress-ring__circle" cx="60" cy="60" r="54" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" />
+                <circle class="progress-ring__circle" cx="60" cy="60" r="54" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="${circumference}" stroke-dashoffset="${activeOffset}" />
               </svg>
               <div class="circle-text">
                   <div class="val">${value}</div>
@@ -410,7 +477,6 @@ class T1DDiabetesCard extends HTMLElement {
           isUrgent = true;
         } else if (parsedDays === 1) {
           // If it reads exactly 1 day with no extra trailing hours/minutes, it is urgent.
-          // Otherwise "1 days, 11 hours" stays safe as it is greater than 24 hours total duration.
           if (!cleanLife.includes('hour') && !cleanLife.includes('minute')) {
             isUrgent = true;
           }
@@ -446,8 +512,61 @@ class T1DDiabetesCard extends HTMLElement {
   }
 
   /**
+   * Maps out dynamic SVG plot points natively for historical arrays without external libraries.
+   * Generates the visual line connecting historical values over the last 6 hours.
+   * @private
+   */
+  _renderGraph() {
+    if (!this._history || this._history.length < 2) {
+      return `
+        <div class="graph-container">
+          <div class="box-h" style="color: #ffffff; opacity: 0.7; text-align: left;">6-HOUR TREND</div>
+          <div style="text-align:center; color:#888; padding: 20px 0; font-size: 0.9rem;">Accumulating Chart Data...</div>
+        </div>`;
+    }
+
+    const width = 300; 
+    const height = 80;
+    
+    const now = Date.now();
+    const startTime = now - (6 * 60 * 60 * 1000); 
+    
+    // Auto-scale vertical bounds based on user's active history
+    let minVal = Math.min(...this._history.map(d => d.state));
+    let maxVal = Math.max(...this._history.map(d => d.state));
+    
+    // Apply bounds padding so line doesn't perfectly touch the roof/floor of SVG
+    const padding = (maxVal - minVal) * 0.15 || 1;
+    minVal -= padding;
+    maxVal += padding;
+
+    let pathD = "";
+    this._history.forEach((point, index) => {
+      let x = ((point.last_changed - startTime) / (now - startTime)) * width;
+      x = Math.max(0, Math.min(width, x)); // Clamp to box bounds
+      let y = height - (((point.state - minVal) / (maxVal - minVal)) * height);
+      
+      if (index === 0) {
+        pathD += `M ${x} ${y} `;
+      } else {
+        pathD += `L ${x} ${y} `;
+      }
+    });
+
+    return `
+      <div class="graph-container">
+        <div class="box-h" style="color: #ffffff; opacity: 0.7; text-align: left;">6-HOUR TREND</div>
+        <svg viewBox="0 0 ${width} ${height}" class="history-graph" preserveAspectRatio="none">
+          <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+    `;
+  }
+
+  /**
    * Component Execution Lifecycle Master Controller.
    * Gathers live data, triggers sub-render architectures, and executes transactional updates.
+   * Intercepts updates to trigger history API checks securely, then proceeds to render.
    * @private
    */
   _render() {
@@ -455,6 +574,24 @@ class T1DDiabetesCard extends HTMLElement {
       return;
     }
 
+    // Rate-limit REST history calls to once every 5 minutes (300,000 ms)
+    const now = Date.now();
+    if (now - this._lastFetch > 300000) {
+      this._lastFetch = now;
+      this._fetchHistory(); 
+      // _fetchHistory will call _renderDOM internally when complete
+    } else {
+      // Fast path for immediate real-time state changes
+      this._renderDOM();
+    }
+  }
+
+  /**
+   * Final Component Execution Payload builder.
+   * Commits all HTML logic into the secure shadow root.
+   * @private
+   */
+  _renderDOM() {
     /**
      * Extracts state strings safely while protecting against empty values or network offline windows.
      */
@@ -507,6 +644,8 @@ class T1DDiabetesCard extends HTMLElement {
       fetchStateString(this._config.days_entity)
     );
 
+    let templateGraph = this._renderGraph();
+
     // Assemble final DOM content payload
     this.shadowRoot.innerHTML = `
       ${templateStyles}
@@ -515,17 +654,18 @@ class T1DDiabetesCard extends HTMLElement {
         ${templateHeader}
         ${templateMatrix}
         ${templateAnalytics}
+        ${templateGraph}
         <div class="btn" id="triggerActionOne">${this._config.alexa_name_1 || "Broadcast Area 1"}</div>
         <div class="btn" id="triggerActionTwo">${this._config.alexa_name_2 || "Broadcast Area 2"}</div>
       </ha-card>
     `;
 
     // Add persistent structural target connection click listeners
-    this.shadowRoot.querySelector('#triggerActionOne').addEventListener('click', () => {
+    this.shadowRoot.querySelector('#triggerActionOne')?.addEventListener('click', () => {
       this._callService(this._config.alexa_1);
     });
     
-    this.shadowRoot.querySelector('#triggerActionTwo').addEventListener('click', () => {
+    this.shadowRoot.querySelector('#triggerActionTwo')?.addEventListener('click', () => {
       this._callService(this._config.alexa_2);
     });
   }
@@ -670,5 +810,5 @@ window.customCards.push({
   type: 't1d-diabetes-card', 
   name: 'T1DDiabetesCard', 
   preview: true, 
-  description: 'Production T1D UI Component featuring Adaptive Color Gauges and Script Triggers.' 
+  description: 'Production T1D UI Component featuring Adaptive Color Gauges, Script Triggers, and Native Graphs.' 
 });
