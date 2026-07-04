@@ -2,7 +2,7 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      v1.72 - Full Enterprise Production Build
+ * @version      v1.73 - Full Enterprise Production Build
  * @release      Definitive Edition (Graphing & High-Vis Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
