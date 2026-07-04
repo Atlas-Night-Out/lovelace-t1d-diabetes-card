@@ -2,13 +2,13 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      1.67 - Full Enterprise Production Build
- * @release      Definitive Edition
+ * @version      1.69 - Full Enterprise Production Build
+ * @release      Definitive Edition (Arc, Trends & Alerts)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
- * xDrip-styled sanitized trend translations, modularized
+ * xDrip-styled sanitized trend translations, modularized 
  * CSS sub-rendering, and adaptive unit map safety grids.
- * Big thank you to ResinChem for is help and support to make this ever possible!
+ * Big thank you to ResinChem for his help and support!
  * ====================================================================
  */
 
@@ -117,16 +117,16 @@ class T1DDiabetesCard extends HTMLElement {
     // Clean string by removing underscores and whitespace for cross-integration compatibility
     const t = trend.toString().toLowerCase().replace(/_/g, '').replace(/\s/g, '').trim();
 
-    // Check for explicit trend states, including 'rising_slightly'/'falling_slightly' variants
+    // Robust matching for all variants of trends, including rising_slightly
     if (t.includes('doubleup')) {
       return { label: '↑↑', text: 'Rapid Up' };
     } else if (t.includes('singleup') || t.includes('rapidup') || t === 'up') {
       return { label: '↑', text: 'Going Up' };
-    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t === 'climbing' || t.includes('risingslightly')) {
+    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t.includes('climbing') || t.includes('risingslightly')) {
       return { label: '↗', text: 'Slow Up' };
     } else if (t.includes('flat') || t.includes('steady') || t === 'none') {
       return { label: '→', text: 'Steady' };
-    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t === 'falling' || t.includes('fallingslightly')) {
+    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t.includes('falling') || t.includes('fallingslightly')) {
       return { label: '↘', text: 'Slow Down' };
     } else if (t.includes('doubledown') || t.includes('rapiddown')) {
       return { label: '↓↓', text: 'Rapid Down' };
@@ -238,18 +238,26 @@ class T1DDiabetesCard extends HTMLElement {
           justify-content: space-between; 
           margin-bottom: 24px; 
         }
-        .glucose-circle {
+        
+        /* UPDATED: Dynamic SVG Container Styles */
+        .glucose-container {
+          position: relative;
           width: 120px;
           height: 120px;
-          border-radius: 50%;
-          border: 5px solid ${glucoseColor};
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          background: rgba(0, 0, 0, 0.35);
-          transition: border-color 0.4s ease-in-out;
         }
+        .progress-ring__circle {
+          transform: rotate(-90deg);
+          transform-origin: 50% 50%;
+          transition: stroke 0.4s ease-in-out, stroke-dashoffset 0.4s ease-in-out;
+        }
+        .circle-text {
+          position: absolute;
+          text-align: center;
+        }
+        
         .val { 
           font-size: 2.6rem; 
           font-weight: bold; 
@@ -291,10 +299,10 @@ class T1DDiabetesCard extends HTMLElement {
           min-width: 0;
           overflow: hidden;
           box-sizing: border-box;
+          transition: background 0.4s ease, border 0.4s ease;
         }
         .a1c-box { 
           border: 2px solid ${a1cColor}; 
-          transition: border-color 0.4s ease-in-out;
         }
         .box-h { 
           font-weight: bold; 
@@ -339,12 +347,18 @@ class T1DDiabetesCard extends HTMLElement {
    * Contains the primary circle container and layout vectors.
    * @private
    */
-  _renderHeader(value, unit, trendText, trendArrow) {
+  _renderHeader(value, unit, trendText, trendArrow, color, offset, circumference) {
     return `
       <div class="header">
-          <div class="glucose-circle">
-              <div class="val">${value}</div>
-              <div class="unit-label">${unit}</div>
+          <div class="glucose-container">
+              <svg width="120" height="120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#333" stroke-width="4" />
+                <circle class="progress-ring__circle" cx="60" cy="60" r="54" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" />
+              </svg>
+              <div class="circle-text">
+                  <div class="val">${value}</div>
+                  <div class="unit-label">${unit}</div>
+              </div>
           </div>
           <div class="trend-container">
               <div class="trend-text">${trendText}</div>
@@ -383,13 +397,19 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   _renderAnalyticsGrid(a1cValue, a1cColor, lifespan) {
+    // Dynamic background alert for Sensor Days
+    const daysLeft = parseInt(lifespan);
+    const isUrgent = !isNaN(daysLeft) && daysLeft <= 1;
+    const alertBg = isUrgent ? "rgba(231, 76, 60, 0.3)" : "rgba(0, 0, 0, 0.25)";
+    const alertBorder = isUrgent ? "2px solid #e74c3c" : "1px solid #333333";
+
     return `
       <div class="grid-double">
          <div class="box a1c-box">
            <div class="box-h" style="color: ${a1cColor}">EST. A1C</div>
            <div class="box-v" style="color: ${a1cColor}">${a1cValue}%</div>
          </div>
-         <div class="box">
+         <div class="box" style="background: ${alertBg}; border: ${alertBorder};">
            <div class="box-h" style="color: #ffffff; opacity: 0.9;">SENSOR DAYS</div>
            <div class="box-v" style="font-size: 1.1rem; line-height: 1.3; white-space: normal;">${lifespan}</div>
          </div>
@@ -435,9 +455,17 @@ class T1DDiabetesCard extends HTMLElement {
     const analyticalGlucoseColor = this._getGlucoseColor(parsedGlucoseFloat, selectedUnitLabel);
     const analyticalA1cColor = this._getA1cColor(computedA1cValue);
 
+    // Calculate dynamic SVG progress arc
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius;
+    const minVal = selectedUnitLabel === "mmol/L" ? 2 : 40;
+    const maxVal = selectedUnitLabel === "mmol/L" ? 22 : 400;
+    const percentage = Math.min(100, Math.max(0, ((parsedGlucoseFloat - minVal) / (maxVal - minVal)) * 100));
+    const offset = circumference - (percentage / 100) * circumference;
+
     // Assembly Pipeline Execution Sequence
     let templateStyles = this._getStyles(analyticalGlucoseColor, analyticalA1cColor);
-    let templateHeader = this._renderHeader(activeRawReading, selectedUnitLabel, trendMetaData.text, trendMetaData.label);
+    let templateHeader = this._renderHeader(activeRawReading, selectedUnitLabel, trendMetaData.text, trendMetaData.label, analyticalGlucoseColor, offset, circumference);
     
     let templateMatrix = this._renderMatrixGrid(
       fetchStateString(this._config.iob_entity),
