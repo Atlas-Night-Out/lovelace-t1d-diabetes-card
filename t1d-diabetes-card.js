@@ -521,42 +521,39 @@ class T1DDiabetesCard extends HTMLElement {
       return `
         <div class="graph-container">
           <div class="box-h" style="color: #ffffff; opacity: 0.7; text-align: left;">6-HOUR TREND</div>
-          <div style="text-align:center; color:#888; padding: 20px 0; font-size: 0.9rem;">Accumulating Chart Data...</div>
+          <div style="text-align:center; color:#888; padding: 20px 0; font-size: 0.9rem;">Accumulating Data...</div>
         </div>`;
     }
 
     const width = 300; 
     const height = 80;
-    
     const now = Date.now();
     const startTime = now - (6 * 60 * 60 * 1000); 
     
-    // Auto-scale vertical bounds based on user's active history
-    let minVal = Math.min(...this._history.map(d => d.state));
-    let maxVal = Math.max(...this._history.map(d => d.state));
+    // Define your targets (adjust these to your personal goals)
+    const highTarget = this._config.unit_type === "mmol/L" ? 10.0 : 180;
+    const lowTarget = this._config.unit_type === "mmol/L" ? 4.0 : 70;
     
-    // Apply bounds padding so line doesn't perfectly touch the roof/floor of SVG
-    const padding = (maxVal - minVal) * 0.15 || 1;
-    minVal -= padding;
-    maxVal += padding;
+    let minVal = Math.min(...this._history.map(d => d.state), lowTarget - 1);
+    let maxVal = Math.max(...this._history.map(d => d.state), highTarget + 1);
+    const range = maxVal - minVal;
+
+    // Helper to map values to SVG Y coordinate
+    const getY = (val) => height - (((val - minVal) / range) * height);
 
     let pathD = "";
     this._history.forEach((point, index) => {
       let x = ((point.last_changed - startTime) / (now - startTime)) * width;
-      x = Math.max(0, Math.min(width, x)); // Clamp to box bounds
-      let y = height - (((point.state - minVal) / (maxVal - minVal)) * height);
-      
-      if (index === 0) {
-        pathD += `M ${x} ${y} `;
-      } else {
-        pathD += `L ${x} ${y} `;
-      }
+      let y = getY(point.state);
+      pathD += (index === 0 ? `M ${x} ${y} ` : `L ${x} ${y} `);
     });
 
     return `
       <div class="graph-container">
         <div class="box-h" style="color: #ffffff; opacity: 0.7; text-align: left;">6-HOUR TREND</div>
-        <svg viewBox="0 0 ${width} ${height}" class="history-graph" preserveAspectRatio="none">
+        <svg viewBox="0 0 ${width} ${height}" class="history-graph" preserveAspectRatio="none" style="overflow:visible;">
+          <line x1="0" y1="${getY(highTarget)}" x2="${width}" y2="${getY(highTarget)}" stroke="#e67e22" stroke-width="1" stroke-dasharray="4" />
+          <line x1="0" y1="${getY(lowTarget)}" x2="${width}" y2="${getY(lowTarget)}" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4" />
           <path d="${pathD}" fill="none" stroke="#00bb00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
