@@ -88,7 +88,7 @@ class T1DDiabetesCard extends HTMLElement {
    */
   async _fetchHistory() {
     // Check for the new glucose_entity, or fallback to the old entity
-    const entity = this._config.glucose_entity || this._config.entity;
+    const entity = this._config.glucose_entity;
     if (!this._hass || !entity) return;
 
     const now = new Date();
