@@ -256,22 +256,6 @@ class T1DDiabetesCard extends HTMLElement {
 
     return `
       <style>
-	  .graph-container {
-          margin-top: 15px;
-          margin-bottom: 15px;
-          padding: 12px 15px 15px 15px;
-          background: rgba(0, 0, 0, 0.25);
-          border: 1px solid #333333;
-          border-radius: 10px;
-        }
-        /* ADD THIS BLOCK HERE */
-        .history-graph {
-          width: 100%;
-          height: 80px;
-          display: block;
-          filter: drop-shadow(0px 0px 2px #00bb00);
-          margin-top: 8px;
-        }
         ha-card { 
           background: rgba(0, 25, 10, 0.4); 
           border: 1.5px solid #00bb00; 
@@ -294,7 +278,6 @@ class T1DDiabetesCard extends HTMLElement {
           justify-content: space-between; 
           margin-bottom: 24px; 
         }
-        
         .glucose-container {
           position: relative;
           width: 120px;
@@ -309,18 +292,15 @@ class T1DDiabetesCard extends HTMLElement {
           transition: stroke 0.4s ease-in-out, stroke-dashoffset 0.4s ease-in-out;
           ${isAlert ? 'animation: pulse 1.5s infinite;' : ''}
         }
-
         @keyframes pulse {
           0% { opacity: 1; }
           50% { opacity: 0.4; }
           100% { opacity: 1; }
         }
-
         .circle-text {
           position: absolute;
           text-align: center;
         }
-        
         .val { 
           font-size: 2.6rem; 
           font-weight: bold; 
