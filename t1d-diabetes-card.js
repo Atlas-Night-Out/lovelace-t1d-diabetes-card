@@ -501,8 +501,8 @@ class T1DDiabetesCard extends HTMLElement {
     }
 
     // Refined matching shade palette layout variables
-    const alertBg = isUrgent ? "rgba(231, 76, 60, 0.15)" : "rgba(0, 0, 0, 0.25)";
-    const alertBorder = isUrgent ? "2px solid #e74c3c" : "1px solid #333333";
+    const alertBg = isUrgent ? "rgba(255, 152, 0, 0.06)" : "rgba(0, 0, 0, 0.25)";
+    const alertBorder = isUrgent ? "2px solid rgba(255, 152, 0, 0.6)" : "2px solid #333333";
 
     return `
       <div class="grid-double">
