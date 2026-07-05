@@ -2,8 +2,8 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      v1.83 - Full Enterprise Production Build
- * @release      Definitive Edition (Graphing & High-Vis Alerts)
+ * @version      v1.86 - Full Enterprise Production Build
+ * @release      Definitive Edition (Universal Entity Fallback Unified)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
  * Personal-Sanitized trend translations, modularized 
@@ -62,7 +62,20 @@ class T1DDiabetesCard extends HTMLElement {
     if (!config) {
       throw new Error("Critical Error: Invalid T1D Card Configuration Schema Detected.");
     }
-    this._config = config;
+    
+    // Core Single Sensor Fallback Architecture Logic Validation Loop
+    // Ensure that if a user sets 'entity' but omits others, the system retains structural integrity.
+    this._config = {
+      ...config,
+      // Fallback hierarchy mappings
+      glucose_entity: config.glucose_entity || config.entity,
+      trend_entity: config.trend_entity || config.entity
+    };
+
+    if (!this._config.entity && !this._config.glucose_entity) {
+      throw new Error("Critical Error: You must define at least one valid core glucose sensor entity!");
+    }
+
     this._lastFetch = 0; // Reset timer on config load
     if (this._hass) {
       this._render();
@@ -87,43 +100,43 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   async _fetchHistory() {
-  const entity = this._config.glucose_entity;
-  
-  // 1. Graceful Exit: If no entity is selected, don't try to fetch
-  if (!this._hass || !entity) {
-    console.log("[T1D Card] Waiting for user to configure a valid glucose_entity.");
-    return;
-  }
-
-  const now = new Date();
-  const startTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-
-  try {
-    const response = await this._hass.callApi(
-      'GET',
-      `history/period/${startTime.toISOString()}?filter_entity_id=${entity}&minimal_response`
-    );
-
-    // 2. Data Validation: Only render if we actually get a response with data
-    if (response && response.length > 0 && response[0].length > 0) {
-      this._history = response[0]
-        .map(state => ({
-          state: parseFloat(state.state),
-          last_changed: new Date(state.last_changed).getTime()
-        }))
-        .filter(item => !isNaN(item.state));
-
-      this._renderDOM();
-    } else {
-      // 3. If the entity is valid but has no history yet, just clear the graph
-      console.warn(`[T1D Card] No history data found for ${entity}.`);
-      this._history = []; 
-      this._renderDOM(); 
+    const entity = this._config.glucose_entity;
+    
+    // 1. Graceful Exit: If no entity is selected, don't try to fetch
+    if (!this._hass || !entity) {
+      console.log("[T1D Card] Waiting for user to configure a valid glucose_entity.");
+      return;
     }
-  } catch (error) {
-    console.error("[T1D Card] Error fetching history:", error);
+
+    const now = new Date();
+    const startTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+
+    try {
+      const response = await this._hass.callApi(
+        'GET',
+        `history/period/${startTime.toISOString()}?filter_entity_id=${entity}&minimal_response`
+      );
+
+      // 2. Data Validation: Only render if we actually get a response with data
+      if (response && response.length > 0 && response[0].length > 0) {
+        this._history = response[0]
+          .map(state => ({
+            state: parseFloat(state.state),
+            last_changed: new Date(state.last_changed).getTime()
+          }))
+          .filter(item => !isNaN(item.state));
+
+        this._renderDOM();
+      } else {
+        // 3. If the entity is valid but has no history yet, just clear the graph
+        console.warn(`[T1D Card] No history data found for ${entity}.`);
+        this._history = []; 
+        this._renderDOM(); 
+      }
+    } catch (error) {
+      console.error("[T1D Card] Error fetching history:", error);
+    }
   }
-}
 
   /**
    * Safe execution handler for triggering backend automation routines and scripts.
@@ -153,32 +166,41 @@ class T1DDiabetesCard extends HTMLElement {
   /**
    * Sanitizes raw system trend strings into clean xDrip-styled text labels and precise arrows.
    * Strips out database characters like underscores to ensure robust parsing.
+   * Supports standard Dexcom phrases, custom template trackers, and Nightscout raw symbols.
    * @param {String} trend Raw state string from the configured tracking sensor.
    * @returns {Object} Map container holding parsed target label and arrow string details.
    * @private
    */
-  _getTrendInfo(trend) {
-    if (!trend) {
+  _getTrendInfo(trend, entityId) {
+    if (!trend || trend === "N/A") {
+      // If we fell back to the main glucose entity, check if it stores trend indicators in attributes
+      if (entityId && this._hass.states[entityId]) {
+        const stateObj = this._hass.states[entityId];
+        trend = stateObj.attributes.direction || stateObj.attributes.trend || stateObj.attributes.delta || trend;
+      }
+    }
+
+    if (!trend || trend === "N/A") {
       return { label: "→", text: "Steady" };
     }
     
     // Clean string by removing underscores and whitespace for cross-integration compatibility
     const t = trend.toString().toLowerCase().replace(/_/g, '').replace(/\s/g, '').trim();
 
-    // Robust matching for all variants of trends, including rising_slightly
-    if (t.includes('doubleup')) {
+    // Robust matching for all variants of trends, including words and explicit Unicode symbols
+    if (t.includes('doubleup') || t === '↓↓' || t === '⇈') {
       return { label: '↑↑', text: 'Rapid Up' };
-    } else if (t.includes('singleup') || t.includes('rapidup') || t === 'up') {
+    } else if (t.includes('singleup') || t.includes('rapidup') || t === 'up' || t === '↑') {
       return { label: '↑', text: 'Going Up' };
-    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t.includes('climbing') || t.includes('risingslightly')) {
+    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t.includes('climbing') || t.includes('risingslightly') || t === '↗') {
       return { label: '↗', text: 'Slow Up' };
-    } else if (t.includes('flat') || t.includes('steady') || t === 'none') {
+    } else if (t.includes('flat') || t.includes('steady') || t === 'none' || t === '→' || t === '↔') {
       return { label: '→', text: 'Steady' };
-    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t.includes('falling') || t.includes('fallingslightly')) {
+    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t.includes('falling') || t.includes('fallingslightly') || t === '↘') {
       return { label: '↘', text: 'Slow Down' };
-    } else if (t.includes('doubledown') || t.includes('rapiddown')) {
+    } else if (t.includes('doubledown') || t.includes('rapiddown') || t === '↓↓' || t === '⇊') {
       return { label: '↓↓', text: 'Rapid Down' };
-    } else if (t.includes('singledown') || t.includes('down')) {
+    } else if (t.includes('singledown') || t.includes('down') || t === '↓') {
       return { label: '↓', text: 'Going Down' };
     } else {
       // Fallback pass-through for unmapped custom native values
@@ -262,7 +284,6 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   _getStyles(glucoseColor, a1cColor) {
-    // Pulse animation logic for severe bounds
     const isAlert = glucoseColor === '#e74c3c';
 
     return `
@@ -414,11 +435,9 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Generates the upper dashboard section template strings.
-   * Includes high-visibility logic for low glucose events.
    * @private
    */
   _renderHeader(value, unit, trendText, trendArrow, color, offset, circumference) {
-    // High-visibility check: If color is red, bypass offset to fill the circle entirely.
     const isAlert = color === '#e74c3c';
     const activeOffset = isAlert ? 0 : offset;
     
@@ -467,15 +486,12 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Generates the lower dual-column monitoring analytics layout blocks.
-   * Includes the dynamically styled HbA1c projections and lifecycle parameters.
-   * Smart parsing evaluates string text patterns to prevent false early alerts.
    * @private
    */
   _renderAnalyticsGrid(a1cValue, a1cColor, lifespan) {
     let isUrgent = false;
     const cleanLife = lifespan.toString().toLowerCase().trim();
 
-    // Smart string-duration safety logic tracker
     if (cleanLife.includes('day')) {
       const dayMatch = cleanLife.match(/(\d+)\s*day/);
       if (dayMatch) {
@@ -483,24 +499,20 @@ class T1DDiabetesCard extends HTMLElement {
         if (parsedDays < 1) {
           isUrgent = true;
         } else if (parsedDays === 1) {
-          // If it reads exactly 1 day with no extra trailing hours/minutes, it is urgent.
           if (!cleanLife.includes('hour') && !cleanLife.includes('minute')) {
             isUrgent = true;
           }
         }
       }
     } else if (cleanLife.includes('hour') || cleanLife.includes('minute')) {
-      // Missing 'day' keyword entirely but has hours/minutes -> strictly sub-24hr window
       isUrgent = true;
     } else {
-      // Fallback fallback evaluator rule for standard numbers
       const numericDays = parseFloat(cleanLife);
       if (!isNaN(numericDays) && numericDays <= 1 && numericDays > 0) {
         isUrgent = true;
       }
     }
 
-    // Refined matching shade palette layout variables
     const alertBg = isUrgent ? "rgba(255, 152, 0, 0.06)" : "rgba(0, 0, 0, 0.25)";
     const alertBorder = isUrgent ? "2px solid rgba(255, 152, 0, 0.6)" : "2px solid #333333";
 
@@ -520,24 +532,21 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Maps out dynamic SVG plot points natively for historical arrays without external libraries.
-   * Generates the visual line connecting historical values over the last 6 hours.
    * @private
    */
   _renderGraph() {
     if (!this._range) this._range = 6;
-    if (!this._history || this._history.length < 2) return `<div class="graph-container">Loading...</div>`;
+    if (!this._history || this._history.length < 2) return `<div class="graph-container">Loading Graph History...</div>`;
 
     const width = 300, height = 80;
     const now = Date.now();
     const startTime = now - (this._range * 60 * 60 * 1000);
     
-    // Use user-defined config or fallbacks
     const high = this._config.high_marker || 10.0;
     const low = this._config.low_marker || 4.0;
 
     const getY = (val) => height - (((val - (low - 3)) / ((high + 3) - (low - 3))) * height);
 
-    // Build segments instead of one path
     let segments = [];
     for (let i = 0; i < this._history.length - 1; i++) {
       const p1 = this._history[i];
@@ -547,7 +556,6 @@ class T1DDiabetesCard extends HTMLElement {
       const y1 = getY(p1.state);
       const y2 = getY(p2.state);
       
-      // Color logic: Red if below low or above high, otherwise Green
       const color = (p1.state < low || p1.state > high) ? "#e74c3c" : "#00bb00";
       segments.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="2" />`);
     }
@@ -565,8 +573,6 @@ class T1DDiabetesCard extends HTMLElement {
 
   /**
    * Component Execution Lifecycle Master Controller.
-   * Gathers live data, triggers sub-render architectures, and executes transactional updates.
-   * Intercepts updates to trigger history API checks securely, then proceeds to render.
    * @private
    */
   _render() {
@@ -574,27 +580,20 @@ class T1DDiabetesCard extends HTMLElement {
       return;
     }
 
-    // Rate-limit REST history calls to once every 5 minutes (300,000 ms)
     const now = Date.now();
     if (now - this._lastFetch > 300000) {
       this._lastFetch = now;
       this._fetchHistory(); 
-      // _fetchHistory will call _renderDOM internally when complete
     } else {
-      // Fast path for immediate real-time state changes
       this._renderDOM();
     }
   }
 
   /**
    * Final Component Execution Payload builder.
-   * Commits all HTML logic into the secure shadow root.
    * @private
    */
   _renderDOM() {
-    /**
-     * Extracts state strings safely while protecting against empty values or network offline windows.
-     */
     const fetchStateString = (entityId) => {
       if (entityId && this._hass.states[entityId]) {
         const stateObj = this._hass.states[entityId].state;
@@ -606,21 +605,21 @@ class T1DDiabetesCard extends HTMLElement {
       return "N/A";
     };
     
-    // Resolve states from dataset repositories
-    const activeRawReading = fetchStateString(this._config.entity);
+    // Resolve primary states with robust fallback check updates
+    const primaryTargetSensor = this._config.entity || this._config.glucose_entity;
+    const activeRawReading = fetchStateString(primaryTargetSensor);
     const parsedGlucoseFloat = parseFloat(activeRawReading);
-    const rawTrendString = fetchStateString(this._config.trend_entity);
     
-    // Compute logical derivatives
-    const trendMetaData = this._getTrendInfo(rawTrendString);
+    // Trend Entity parsing fallback check
+    const rawTrendString = fetchStateString(this._config.trend_entity);
+    const trendMetaData = this._getTrendInfo(rawTrendString, primaryTargetSensor);
+    
     const selectedUnitLabel = this._config.unit_type || "mmol/L";
     const computedA1cValue = this._calculateA1c(parsedGlucoseFloat, selectedUnitLabel);
     
-    // Map colors
     const analyticalGlucoseColor = this._getGlucoseColor(parsedGlucoseFloat, selectedUnitLabel);
     const analyticalA1cColor = this._getA1cColor(computedA1cValue);
 
-    // Calculate dynamic SVG progress arc
     const radius = 54;
     const circumference = 2 * Math.PI * radius;
     const minVal = selectedUnitLabel === "mmol/L" ? 2 : 40;
@@ -628,7 +627,6 @@ class T1DDiabetesCard extends HTMLElement {
     const percentage = Math.min(100, Math.max(0, ((parsedGlucoseFloat - minVal) / (maxVal - minVal)) * 100));
     const offset = circumference - (percentage / 100) * circumference;
 
-    // Assembly Pipeline Execution Sequence
     let templateStyles = this._getStyles(analyticalGlucoseColor, analyticalA1cColor);
     let templateHeader = this._renderHeader(activeRawReading, selectedUnitLabel, trendMetaData.text, trendMetaData.label, analyticalGlucoseColor, offset, circumference);
     
@@ -646,7 +644,6 @@ class T1DDiabetesCard extends HTMLElement {
 
     let templateGraph = this._renderGraph();
 
-    // Assemble final DOM content payload
     this.shadowRoot.innerHTML = `
       ${templateStyles}
       <ha-card>
@@ -660,7 +657,6 @@ class T1DDiabetesCard extends HTMLElement {
       </ha-card>
     `;
 
-    // Add persistent structural target connection click listeners
     this.shadowRoot.querySelector('#triggerActionOne')?.addEventListener('click', () => {
       this._callService(this._config.alexa_1);
     });
@@ -673,13 +669,9 @@ class T1DDiabetesCard extends HTMLElement {
 
 /**
  * Visual Form Editor Architectural Component
- * Builds forms visually inside the Home Assistant panel layout workspace.
  */
 class T1DDiabetesCardEditor extends HTMLElement {
   
-  /**
-   * Allocates space and configures core baseline initialization variables.
-   */
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -687,34 +679,20 @@ class T1DDiabetesCardEditor extends HTMLElement {
     this._hass = null;
   }
 
-  /**
-   * Connects incoming card parameters across the visual panel editor boundary framework.
-   * @param {Object} config Targeted parameters map schema.
-   */
   setConfig(config) {
     this._config = config;
   }
 
-  /**
-   * Monitors modifications made inside configuration environments.
-   * @param {Object} hass Core application state data engine reference tracker.
-   */
   set hass(hass) {
     this._hass = hass;
     this._render();
   }
 
-  /**
-   * Visual Configuration UI Form Rendering Loop.
-   * Formulates full structural option dropdown menus and entities lookups.
-   * @private
-   */
   _render() {
     if (!this._hass || !this._config || this.shadowRoot.querySelector('ha-form')) {
       return;
     }
     
-    // UI Form Structure Definition Map Schema
     const structuralSchema = [
       {
         name: "title",
@@ -731,19 +709,19 @@ class T1DDiabetesCardEditor extends HTMLElement {
         label: "Core CGM Blood Glucose Concentration Sensor Value ID",
         selector: { entity: { domain: "sensor" } }
       },
-	  {
-      name: "sensor_type",
-      label: "CGM Source Type",
-      selector: { select: { options: ["Dexcom", "Nightscout", "Libre"] } }
-    },
-    {
-      name: "glucose_entity",
-      label: "Primary Glucose Sensor",
-      selector: { entity: { domain: "sensor" } }
-    },
+      {
+        name: "sensor_type",
+        label: "CGM Source Type",
+        selector: { select: { options: ["Dexcom", "Nightscout", "Libre"] } }
+      },
+      {
+        name: "glucose_entity",
+        label: "Primary Glucose Sensor (Optional Fallback)",
+        selector: { entity: { domain: "sensor" } }
+      },
       {
         name: "trend_entity",
-        label: "Interstitial Fluid Trend Path Direction Pointer Sensor",
+        label: "Interstitial Fluid Trend Path Direction Pointer Sensor (Optional Fallback)",
         selector: { entity: { domain: "sensor" } }
       },
       {
@@ -786,16 +764,16 @@ class T1DDiabetesCardEditor extends HTMLElement {
         label: "Second Interactive Button Target Automated Service Script Hook",
         selector: { entity: { domain: "script" } }
       },
-	  {
-      name: "high_marker",
-      label: "High Glucose Threshold Marker",
-      selector: { number: { mode: "box", step: 0.1 } }
-    },
-    {
-      name: "low_marker",
-      label: "Low Glucose Threshold Marker",
-      selector: { number: { mode: "box", step: 0.1 } }
-    },
+      {
+        name: "high_marker",
+        label: "High Glucose Threshold Marker",
+        selector: { number: { mode: "box", step: 0.1 } }
+      },
+      {
+        name: "low_marker",
+        label: "Low Glucose Threshold Marker",
+        selector: { number: { mode: "box", step: 0.1 } }
+      },
     ];
 
     const formElement = document.createElement("ha-form");
@@ -803,7 +781,6 @@ class T1DDiabetesCardEditor extends HTMLElement {
     formElement.schema = structuralSchema;
     formElement.data = this._config;
     
-    // Dispatches parameter updates cleanly back to dashboard UI nodes on edits
     formElement.addEventListener("value-changed", (eventHook) => {
       this._config = eventHook.detail.value;
       
