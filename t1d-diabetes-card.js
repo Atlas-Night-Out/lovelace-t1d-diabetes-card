@@ -2,7 +2,7 @@
  * ====================================================================
  * TYPE 1 DIABETES (T1D) ADVANCED MONITORING & MANAGEMENT UI CARD
  * ====================================================================
- * @version      v1.86 - Full Enterprise Production Build
+ * @version      v1.87 - Full Enterprise Production Build
  * @release      Definitive Edition (Universal Entity Fallback Unified)
  * @description  Custom Home Assistant Dashboard card tailored for real-time 
  * Continuous Glucose Monitor (CGM) analytics. Featuring 
@@ -172,38 +172,36 @@ class T1DDiabetesCard extends HTMLElement {
    * @private
    */
   _getTrendInfo(trend, entityId) {
-    if (!trend || trend === "N/A") {
-      // If we fell back to the main glucose entity, check if it stores trend indicators in attributes
-      if (entityId && this._hass.states[entityId]) {
-        const stateObj = this._hass.states[entityId];
-        trend = stateObj.attributes.direction || stateObj.attributes.trend || stateObj.attributes.delta || trend;
-      }
+    // Attempt to auto-detect the trend attribute if the main state is missing or empty
+    if ((!trend || trend === "N/A" || trend === "none") && entityId && this._hass.states[entityId]) {
+      const attrs = this._hass.states[entityId].attributes;
+      // Look for the trend in all standard attribute locations automatically
+      trend = attrs.trend || attrs.direction || attrs.state || attrs.delta || trend;
     }
 
-    if (!trend || trend === "N/A") {
+    if (!trend || trend === "N/A" || trend === "none") {
       return { label: "→", text: "Steady" };
     }
     
-    // Clean string by removing underscores and whitespace for cross-integration compatibility
+    // Normalize string to be case-insensitive and remove formatting noise
     const t = trend.toString().toLowerCase().replace(/_/g, '').replace(/\s/g, '').trim();
 
-    // Robust matching for all variants of trends, including words and explicit Unicode symbols
-    if (t.includes('doubleup') || t === '↓↓' || t === '⇈') {
+    // Universal mapping - covers all standard CGM integration outputs
+    if (t.includes('doubleup') || t === '⇈' || t === '↑↑') {
       return { label: '↑↑', text: 'Rapid Up' };
-    } else if (t.includes('singleup') || t.includes('rapidup') || t === 'up' || t === '↑') {
+    } else if (t.includes('singleup') || t === '↑' || t === 'rising' || t === 'up') {
       return { label: '↑', text: 'Going Up' };
-    } else if (t.includes('fortyfiveup') || t.includes('slightup') || t.includes('climbing') || t.includes('risingslightly') || t === '↗') {
+    } else if (t.includes('fortyfiveup') || t === '↗' || t.includes('risingslightly')) {
       return { label: '↗', text: 'Slow Up' };
-    } else if (t.includes('flat') || t.includes('steady') || t === 'none' || t === '→' || t === '↔') {
+    } else if (t.includes('flat') || t === '→' || t === '↔' || t === 'steady' || t === 'stable') {
       return { label: '→', text: 'Steady' };
-    } else if (t.includes('fortyfivedown') || t.includes('slightdown') || t.includes('falling') || t.includes('fallingslightly') || t === '↘') {
+    } else if (t.includes('fortyfivedown') || t === '↘' || t.includes('fallingslightly')) {
       return { label: '↘', text: 'Slow Down' };
-    } else if (t.includes('doubledown') || t.includes('rapiddown') || t === '↓↓' || t === '⇊') {
-      return { label: '↓↓', text: 'Rapid Down' };
-    } else if (t.includes('singledown') || t.includes('down') || t === '↓') {
+    } else if (t.includes('singledown') || t === '↓' || t === 'falling' || t === 'down') {
       return { label: '↓', text: 'Going Down' };
+    } else if (t.includes('doubledown') || t === '⇊' || t === '↓↓') {
+      return { label: '↓↓', text: 'Rapid Down' };
     } else {
-      // Fallback pass-through for unmapped custom native values
       return { label: '→', text: trend };
     }
   }
@@ -809,3 +807,4 @@ window.customCards.push({
   preview: true, 
   description: 'Production T1D UI Component featuring Adaptive Color Gauges, Script Triggers, and Native Graphs.' 
 });
+
